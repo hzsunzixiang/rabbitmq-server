@@ -156,7 +156,7 @@ DEP_PLUGINS = rabbit_common/mk/rabbitmq-plugin.mk
 include ../../rabbitmq-components.mk
 include ../../erlang.mk
 
-CLI_SCRIPTS := scripts/rmq3
+CLI_SCRIPTS := scripts/rmq
 
 ebin/$(PROJECT).app:: $(CLI_SCRIPTS)
 

@@ -32,7 +32,7 @@ list_exchanges(Args) ->
                    rabbit_exchange,
                    info_all,
                    [VHost, InfoKeys]),
-    io:format("~p~n", [Ret]).
+    rabbit_cli_output:sync_notify(Ret).
 
 get_nodename(#{node := Nodename}) ->
     Nodename;
