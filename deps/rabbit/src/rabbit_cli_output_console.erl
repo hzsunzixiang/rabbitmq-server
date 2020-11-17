@@ -1,6 +1,8 @@
 -module(rabbit_cli_output_console).
 -behaviour(gen_event).
 
+-include_lib("stdout_formatter/include/stdout_formatter.hrl").
+
 -export([init/1,
          handle_call/2,
          handle_event/2,
