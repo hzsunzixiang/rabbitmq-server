@@ -2,6 +2,8 @@
 
 -export([cli/0]).
 
+-include("rabbit.hrl").
+
 cli() ->
     #{commands => #{
         "exchange" => #{
@@ -32,7 +34,27 @@ list_exchanges(Args) ->
                    rabbit_exchange,
                    info_all,
                    [VHost, InfoKeys]),
-    rabbit_cli_output:sync_notify(Ret).
+    case is_list(Ret) of
+        true ->
+            rabbit_cli_output:notify(
+              {info_table, #{keys => InfoKeys,
+                             rows => Ret,
+                             callbacks => #{
+                               info_key_to_col_title =>
+                               fun(S) -> string:titlecase(atom_to_list(S)) end,
+                               info_value_to_cell_content =>
+                               fun
+                                   ({name, #resource{name = <<>>}}) ->
+                                       "<empty>";
+                                   ({name, #resource{name = Name}}) ->
+                                       Name;
+                                   ({_, T}) ->
+                                       T
+                               end
+                              }}});
+        false ->
+            rabbit_cli_output:notify(Ret)
+    end.
 
 get_nodename(#{node := Nodename}) ->
     Nodename;
