@@ -14,4 +14,4 @@ cli() ->
 show_version(_) ->
     ok = application:load(rabbit),
     {ok, Version} = application:get_key(rabbit, vsn),
-    rabbit_cli_output:sync_notify(Version).
+    rabbit_cli_io:notify(Version).

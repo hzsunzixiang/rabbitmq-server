@@ -1,4 +1,4 @@
--module(rabbit_cli_output).
+-module(rabbit_cli_io).
 
 -export([setup/1,
          close/0,
@@ -13,7 +13,7 @@ setup(Args) ->
         {ok, Pid} ->
             ok = gen_event:add_sup_handler(
                    Pid,
-                   rabbit_cli_output_console,
+                   rabbit_cli_io_console,
                    Args),
             ok = logger:add_handler(
                    ?EVENT_MGR_REF, ?MODULE, #{}),
@@ -23,7 +23,7 @@ setup(Args) ->
     end.
 
 close() ->
-    gen_event:stop(rabbit_cli_output).
+    gen_event:stop(?EVENT_MGR_REF).
 
 notify(Event) ->
     gen_event:notify(?EVENT_MGR_REF, Event).

@@ -12,13 +12,13 @@ cli() ->
          action => store},
 
        #{name => vhost,
-         short => $v,
+         short => $p,
          long => "-vhost",
          type => binary,
          action => store},
 
        #{name => verbose,
-         short => $V,
+         short => $v,
          long => "-verbose",
          action => count}
       ]}.

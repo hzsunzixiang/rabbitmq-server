@@ -1,4 +1,4 @@
--module(rabbit_cli_output_console).
+-module(rabbit_cli_io_console).
 -behaviour(gen_event).
 
 -include_lib("stdout_formatter/include/stdout_formatter.hrl").
@@ -29,6 +29,11 @@ init(_) ->
 handle_call(_Request, State) ->
     {ok, ok, State}.
 
+handle_event(
+  {log_event, LogEvent, #{formatter := {FModule, FConfig}}},
+  State) ->
+    io:put_chars(FModule:format(LogEvent, FConfig)),
+    {ok, State};
 handle_event(
   {info_table, #{keys := Keys, rows := Rows0, callbacks := CBs}},
   State)

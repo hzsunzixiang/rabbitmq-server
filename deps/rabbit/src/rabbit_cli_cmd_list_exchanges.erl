@@ -36,7 +36,7 @@ list_exchanges(Args) ->
                    [VHost, InfoKeys]),
     case is_list(Ret) of
         true ->
-            rabbit_cli_output:notify(
+            rabbit_cli_io:notify(
               {info_table, #{keys => InfoKeys,
                              rows => Ret,
                              callbacks => #{
@@ -53,7 +53,7 @@ list_exchanges(Args) ->
                                end
                               }}});
         false ->
-            rabbit_cli_output:notify(Ret)
+            rabbit_cli_io:notify(Ret)
     end.
 
 get_nodename(#{node := Nodename}) ->

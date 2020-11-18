@@ -11,9 +11,8 @@ run(_ProgName, RawArgs) ->
     Ret = argparse:parse(RawArgs, CommandMap),
 
     %% 2. Output setup.
-    rabbit_cli_output:setup(Ret),
-    logger:set_primary_config(level, debug),
-    %logger:i(),
+    rabbit_cli_io:setup(Ret),
+    set_log_level(Ret),
     logger:debug("argparse:parse/2 -> ~p~n", [Ret]),
 
     %% 3. Command execution.
@@ -29,7 +28,7 @@ run(_ProgName, RawArgs) ->
 
 
     %% 4. Close output and return exit status.
-    rabbit_cli_output:close(),
+    rabbit_cli_io:close(),
     ok.
 
 discover_commands() ->
@@ -38,6 +37,16 @@ discover_commands() ->
      rabbit_cli_cmd_list_exchanges,
      rabbit_cli_cmd_version
     ].
+
+set_log_level(#{verbose := Verbose}) ->
+    if
+        Verbose >= 2 -> logger:set_primary_config(level, debug);
+        true         -> logger:set_primary_config(level, info)
+    end;
+set_log_level(ArgMap) when is_map(ArgMap) ->
+    logger:set_primary_config(level, notice);
+set_log_level({ArgMap, _}) ->
+    set_log_level(ArgMap).
 
 %% -------------------------------------------------------------------
 %% Copied from `cli` module (argparse 1.1.0).
