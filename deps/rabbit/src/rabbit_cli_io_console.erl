@@ -29,10 +29,8 @@ init(_) ->
 handle_call(_Request, State) ->
     {ok, ok, State}.
 
-handle_event(
-  {log_event, LogEvent, #{formatter := {FModule, FConfig}}},
-  State) ->
-    io:put_chars(FModule:format(LogEvent, FConfig)),
+handle_event({format, Format, Args}, State) ->
+    io:format(Format, Args),
     {ok, State};
 handle_event(
   {info_table, #{keys := Keys, rows := Rows0, callbacks := CBs}},
@@ -73,6 +71,11 @@ handle_event(
     stdout_formatter:display(
       #table{rows = [TableHeader | Rows],
              props = Border#{cell_padding => {0, 1}}}),
+    {ok, State};
+handle_event(
+  {log_event, LogEvent, #{formatter := {FModule, FConfig}}},
+  State) ->
+    io:put_chars(FModule:format(LogEvent, FConfig)),
     {ok, State};
 handle_event(Event, State) ->
     io:format("~p~n", [Event]),

@@ -54,7 +54,8 @@ list_exchanges(Args) ->
                               }}});
         false ->
             rabbit_cli_io:notify(Ret)
-    end.
+    end,
+    ok.
 
 get_nodename(#{node := Nodename}) ->
     Nodename;
