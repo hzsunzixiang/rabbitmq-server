@@ -509,7 +509,7 @@ next_state(State = #q{q = Q,
     case BQ:needs_timeout(BQS1) of
         false -> {stop_sync_timer(State1),   hibernate     };
         idle  -> {stop_sync_timer(State1),   ?SYNC_INTERVAL};
-        timed -> {ensure_sync_timer(State1), 25             }
+        timed -> {ensure_sync_timer(State1), 5             }
     end.
 
 backing_queue_module(Q) ->
