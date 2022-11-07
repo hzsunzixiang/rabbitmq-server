@@ -699,8 +699,10 @@ publish_coordinator_unavailable(Config) ->
     publish(Ch, Q),
     ?assertExit({{shutdown, {connection_closing, {server_initiated_close, 506, _}}}, _},
                 amqp_channel:wait_for_confirms(Ch, 60)),
-    ok = rabbit_ct_broker_helpers:start_node(Config, Server1),
-    ok = rabbit_ct_broker_helpers:start_node(Config, Server2),
+    ok = rabbit_ct_broker_helpers:async_start_node(Config, Server1),
+    ok = rabbit_ct_broker_helpers:async_start_node(Config, Server2),
+    ok = rabbit_ct_broker_helpers:wait_for_async_start_node(Server1),
+    ok = rabbit_ct_broker_helpers:wait_for_async_start_node(Server2),
     rabbit_ct_helpers:await_condition(
       fun () ->
               Info = find_queue_info(Config, 0, [online]),
@@ -853,7 +855,8 @@ restart_coordinator_without_queues(Config) ->
     ?assertMatch(#'queue.delete_ok'{}, amqp_channel:call(Ch, #'queue.delete'{queue = Q})),
 
     [rabbit_ct_broker_helpers:stop_node(Config, S) || S <- Servers0],
-    [spawn(fun() -> rabbit_ct_broker_helpers:start_node(Config, S) end)|| S <- lists:reverse(tl(Servers0))],
+    [rabbit_ct_broker_helpers:async_start_node(Config, S) || S <- lists:reverse(tl(Servers0))],
+    [rabbit_ct_broker_helpers:wait_for_async_start_node(S) || S <- lists:reverse(tl(Servers0))],
     rabbit_ct_broker_helpers:start_node(Config, hd(Servers0)),
 
     Ch1 = rabbit_ct_client_helpers:open_channel(Config, Server),
