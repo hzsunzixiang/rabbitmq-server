@@ -697,15 +697,14 @@ enable_feature_flag_with_a_network_partition(Config) ->
 
     %% Enabling the feature flag should fail in the specific case of
     %% `ff_from_testsuite`, if the network is broken.
-    UsingFFv1 = not ?config(enable_feature_flags_v2, Config),
-    case UsingFFv1 of
-        true ->
-            ?assertEqual(
-               {error, unsupported},
-               enable_feature_flag_on(Config, B, FeatureName));
-        false ->
+    case is_feature_flag_enabled(Config, feature_flags_v2) of
+        Enabled when Enabled == True ->
             ?assertEqual(
                {error, missing_clustered_nodes},
+               enable_feature_flag_on(Config, B, FeatureName));
+        _ ->
+            ?assertEqual(
+               {error, unsupported},
                enable_feature_flag_on(Config, B, FeatureName))
     end,
     ?assertEqual(
@@ -1002,7 +1001,8 @@ clustering_ok_with_new_ff_enabled_from_plugin_on_some_nodes(Config) ->
     ?assertEqual(Config, rabbit_ct_broker_helpers:cluster_nodes(Config)),
 
     log_feature_flags_of_all_nodes(Config),
-    UsingFFv2 = ?config(enable_feature_flags_v2, Config),
+    UsingFFv2 = lists:all(fun(V) -> V end,
+                          is_feature_flag_enabled(Config, feature_flags_v2)),
     UsingFFv1 = not UsingFFv2,
     case FFSubsysOk of
         true when UsingFFv1 ->
@@ -1130,7 +1130,8 @@ activating_plugin_with_new_ff_enabled(Config) ->
     enable_feature_flag_on(Config, 0, plugin_ff),
 
     log_feature_flags_of_all_nodes(Config),
-    UsingFFv2 = ?config(enable_feature_flags_v2, Config),
+    UsingFFv2 = lists:all(fun(V) -> V end,
+                          is_feature_flag_enabled(Config, feature_flags_v2)),
     UsingFFv1 = not UsingFFv2,
     case FFSubsysOk of
         true when UsingFFv1 ->
