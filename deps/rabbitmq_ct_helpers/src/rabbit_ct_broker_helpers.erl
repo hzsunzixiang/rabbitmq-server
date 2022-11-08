@@ -168,7 +168,9 @@
 
     test_channel/0,
     test_writer/1,
-    user/1
+    user/1,
+
+    configured_metadata_store/1
   ]).
 
 %% Internal functions exported to be used by rpc:call/4.
@@ -925,24 +927,31 @@ share_dist_and_proxy_ports_map(Config) ->
       application, set_env, [kernel, dist_and_proxy_ports_map, Map]),
     Config.
 
-configure_metadata_store(Config) ->
-    ct:pal("Configuring metadata store ..."),
+configured_metadata_store(Config) ->
     case ?config(metadata_store, Config) of
         khepri ->
-            enable_khepri_metadata_store(Config, []);
-        {khepri, FFs0} ->
-            enable_khepri_metadata_store(Config, FFs0);
+            {khepri, []};
+        {khepri, _FFs0} = Khepri ->
+            Khepri;
+        mnesia ->
+            mnesia;
         _ ->
             case os:getenv("RABBITMQ_METADATA_STORE") of
-                false ->
-                    ct:pal("Enabling default (mnesia) metadata store"),
-                    Config;
                 "khepri" ->
-                    enable_khepri_metadata_store(Config, []);
+                    {khepri, []};
                 _ ->
-                    ct:pal("Enabling default (mnesia) metadata store"),
-                    Config
+                    mnesia
             end
+    end.
+
+configure_metadata_store(Config) ->
+    ct:pal("Configuring metadata store ..."),
+    case configured_metadata_store(Config) of
+        {khepri, FFs0} ->
+            enable_khepri_metadata_store(Config, FFs0);
+        mnesia ->
+            ct:pal("Enabling default (mnesia) metadata store"),
+            Config
     end.
 
 enable_khepri_metadata_store(Config, FFs0) ->

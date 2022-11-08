@@ -416,7 +416,7 @@ topic_matching1(_Config) ->
        {"args-test",           ["t6", "t22", "t23", "t24", "t25", "t27"]}]),
 
     %% remove the entire exchange
-    exchange_op_callback(X, delete, [RemainingBindings]),
+    exchange_op_callback(X, delete, []),
     %% none should match now
     test_topic_expect_match(X, [{"a.b.c", []}, {"b.b.c", []}, {"", []}]),
     passed.

@@ -38,7 +38,8 @@ init_per_suite(Config) ->
 end_per_suite(Config) ->
     rabbit_ct_helpers:run_teardown_steps(Config).
 
-init_per_group(mnesia_store, Config) ->
+init_per_group(mnesia_store, Config0) ->
+    Config = rabbit_ct_helpers:set_config(Config0, [{metadata_store, khepri}]),
     init_per_group_common(Config);
 init_per_group(khepri_store, Config0) ->
     Config = rabbit_ct_helpers:set_config(Config0, [{metadata_store, khepri}]),

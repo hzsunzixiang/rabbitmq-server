@@ -82,7 +82,8 @@ init_per_group(mirrored_queue, Config) ->
                          {queue_args, [{<<"x-queue-type">>, longstr, <<"classic">>}]},
                          {queue_durable, true}]),
     rabbit_ct_helpers:run_steps(Config1, []);
-init_per_group(mnesia_store = Group, Config) ->
+init_per_group(mnesia_store = Group, Config0) ->
+    Config = rabbit_ct_helpers:set_config(Config0, [{metadata_store, mnesia}]),
     init_per_group0(Group, Config);
 init_per_group(khepri_store = Group, Config0) ->
     Config = rabbit_ct_helpers:set_config(Config0, [{metadata_store, khepri}]),

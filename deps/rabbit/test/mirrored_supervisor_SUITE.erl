@@ -195,7 +195,7 @@ start_idempotence(_Config) ->
 
 unsupported(_Config) ->
     try
-        ?MS:start_link({global, foo}, get_group(group), fun tx_fun/1, ?MODULE,
+        ?MS:start_link({global, foo}, get_group(group), ?MODULE,
                        {one_for_one, []}),
         exit(no_global)
     catch error:badarg ->
@@ -203,7 +203,7 @@ unsupported(_Config) ->
     end,
     try
         {ok, _} = ?MS:start_link({local, foo}, get_group(group),
-          fun tx_fun/1, ?MODULE, {simple_one_for_one, []}),
+          ?MODULE, {simple_one_for_one, []}),
         exit(no_sofo)
     catch error:badarg ->
         ok
@@ -211,7 +211,7 @@ unsupported(_Config) ->
 
 %% Just test we don't blow up
 ignore(_Config) ->
-    ?MS:start_link({local, foo}, get_group(group), fun tx_fun/1, ?MODULE,
+    ?MS:start_link({local, foo}, get_group(group), ?MODULE,
                    {fake_strategy_for_ignore, []}).
 
 startup_failure(_Config) ->
@@ -219,7 +219,7 @@ startup_failure(_Config) ->
 
 test_startup_failure(Fail) ->
     process_flag(trap_exit, true),
-    ?MS:start_link(get_group(group), fun tx_fun/1, ?MODULE,
+    ?MS:start_link(get_group(group), ?MODULE,
                    {one_for_one, [childspec(Fail)]}),
     receive
         {'EXIT', _, shutdown} ->
@@ -253,11 +253,11 @@ start_sup(Name, Group) ->
     start_sup({Name, []}, Group).
 
 start_sup0(anon, Group, ChildSpecs) ->
-    ?MS:start_link(Group, fun tx_fun/1, ?MODULE,
+    ?MS:start_link(Group, ?MODULE,
                    {one_for_one, ChildSpecs});
 
 start_sup0(Name, Group, ChildSpecs) ->
-    ?MS:start_link({local, Name}, Group, fun tx_fun/1, ?MODULE,
+    ?MS:start_link({local, Name}, Group, ?MODULE,
                    {one_for_one, ChildSpecs}).
 
 childspec(Id) ->
@@ -266,12 +266,6 @@ childspec(Id) ->
 pid_of(Id) ->
     {received, Pid, ping} = call(Id, ping),
     Pid.
-
-tx_fun(Fun) ->
-    case mnesia:sync_transaction(Fun) of
-        {atomic,  Result}         -> Result;
-        {aborted, Reason}         -> throw({error, Reason})
-    end.
 
 inc_group() ->
     Count = case get(counter) of

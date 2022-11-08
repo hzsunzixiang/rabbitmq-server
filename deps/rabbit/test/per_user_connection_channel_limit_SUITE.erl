@@ -80,11 +80,12 @@ end_per_suite(Config) ->
     rabbit_ct_helpers:run_teardown_steps(Config).
 
 init_per_group(mnesia_store, Config) ->
-    Config;
+    rabbit_ct_helpers:set_config(Config, [{metadata_store, mnesia}]);
 init_per_group(khepri_store, Config) ->
     rabbit_ct_helpers:set_config(Config, [{metadata_store, khepri}]);
 init_per_group(khepri_migration, Config) ->
-    Config1 = rabbit_ct_helpers:set_config(Config, [{connection_type, network}]),
+    Config1 = rabbit_ct_helpers:set_config(Config, [{connection_type, network},
+                                                    {metadata_store, mnesia}]),
     init_per_multinode_group(cluster_size_1_network, Config1, 1);
 init_per_group(cluster_size_1_network, Config) ->
     Config1 = rabbit_ct_helpers:set_config(Config, [{connection_type, network}]),

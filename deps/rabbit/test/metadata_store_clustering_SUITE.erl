@@ -68,7 +68,8 @@ end_per_suite(Config) ->
     rabbit_ct_helpers:run_teardown_steps(Config).
 
 init_per_group(unclustered, Config) ->
-    rabbit_ct_helpers:set_config(Config, [{rmq_nodes_clustered, false},
+    rabbit_ct_helpers:set_config(Config, [{metadata_store, mnesia},
+                                          {rmq_nodes_clustered, false},
                                           {tcp_ports_base},
                                           {net_ticktime, 10}]);
 init_per_group(cluster_size_2, Config) ->

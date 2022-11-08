@@ -88,7 +88,8 @@ init_per_group(max_length_mirrored, Config) ->
                          {queue_args, [{<<"x-queue-type">>, longstr, <<"classic">>}]},
                          {queue_durable, false}]),
     rabbit_ct_helpers:run_steps(Config1, []);
-init_per_group(mnesia_parallel_tests = Group, Config) ->
+init_per_group(mnesia_parallel_tests = Group, Config0) ->
+    Config = rabbit_ct_helpers:set_config(Config0, [{metadata_store, mnesia}]),
     init_per_group0(Group, Config);
 init_per_group(khepri_parallel_tests = Group, Config0) ->
     Config = rabbit_ct_helpers:set_config(Config0, [{metadata_store, khepri}]),
