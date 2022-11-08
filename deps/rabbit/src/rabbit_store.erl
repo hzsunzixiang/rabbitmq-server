@@ -182,7 +182,7 @@ list_exchanges() ->
 count_exchanges() ->
     rabbit_khepri:try_mnesia_or_khepri(
       fun() -> count_in_mnesia(rabbit_exchange) end,
-      fun() -> rabbit_khepri:count_children(khepri_exchanges_path() ++ [if_has_data_wildcard()]) end).
+      fun() -> rabbit_khepri:count_children(khepri_exchanges_path() ++ [?KHEPRI_WILDCARD_STAR]) end).
 
 list_exchange_names() ->
     rabbit_khepri:try_mnesia_or_khepri(
