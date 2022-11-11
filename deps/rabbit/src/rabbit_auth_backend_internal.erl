@@ -100,7 +100,9 @@
          clear_topic_permissions_in_khepri/2,
 
          extract_user_permission_params/2,
-         extract_topic_permission_params/2]).
+         extract_topic_permission_params/2,
+
+         clear_data/0]).
 -endif.
 
 -import(rabbit_data_coercion, [to_atom/1, to_list/1, to_binary/1]).
@@ -1764,3 +1766,14 @@ khepri_topic_permission_path(Username, VHostName, Exchange) ->
     [?MODULE, users, Username, topic_permissions, VHostName, Exchange].
 
 khepri_path_to_user([?MODULE, users, Username | _]) -> Username.
+
+clear_data() ->
+    rabbit_khepri:try_mnesia_or_khepri(
+      fun() ->
+              {atomic, ok} = mnesia:clear_table(rabbit_topic_permission),
+              {atomic, ok} = mnesia:clear_table(rabbit_user_permission),
+              {atomic, ok} = mnesia:clear_table(rabbit_user)
+      end,
+      fun() ->
+              clear_data_in_khepri(rabbit_user)
+      end).

@@ -56,7 +56,9 @@
          clear_permissions_in_khepri/2,
          internal_delete_in_mnesia/1,
          internal_delete_in_khepri/1,
-         internal_delete_in_khepri/2]).
+         internal_delete_in_khepri/2,
+
+         clear_data/0]).
 -endif.
 
 %%
@@ -938,3 +940,12 @@ mnesia_delete_to_khepri(rabbit_vhost, VHost) when ?is_vhost(VHost) ->
 
 khepri_vhosts_path()     -> [?MODULE].
 khepri_vhost_path(VHost) -> [?MODULE, VHost].
+
+clear_data() ->
+    rabbit_khepri:try_mnesia_or_khepri(
+      fun() ->
+              {atomic, ok} = mnesia:clear_table(rabbit_vhost)
+      end,
+      fun() ->
+              clear_data_in_khepri(rabbit_vhost)
+      end).
