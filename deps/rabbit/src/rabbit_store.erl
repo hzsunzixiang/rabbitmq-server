@@ -44,7 +44,7 @@
          lookup_durable_queues/1, exists_queue/1, list_queues_by_type/1]).
 
 -export([store_queue/2, store_queues/1, store_queue_without_recover/2,
-         store_queue_dirty/1]).
+         store_queue_dirty/1, store_queue_in_khepri_tx/1]).
 
 %% Routing. These functions are in the hot code path
 -export([match_bindings/2, match_routing_key/3]).
@@ -807,6 +807,12 @@ store_queue(DurableQ, Q) ->
               Path = khepri_queue_path(QName),
               rabbit_khepri:put(Path, Q)
       end).
+
+store_queue_in_khepri_tx(Q) ->
+    %% Only used by mirroring, to be removed
+    QName = amqqueue:get_name(Q),
+    Path = khepri_queue_path(QName),
+    khepri_tx:put(Path, Q).
 
 store_queue_without_recover(DurableQ, Q) ->
     QueueName = amqqueue:get_name(Q),

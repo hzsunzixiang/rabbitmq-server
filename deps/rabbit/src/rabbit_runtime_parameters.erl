@@ -429,7 +429,7 @@ list_global_in_khepri() ->
     Path = khepri_global_rp_path(?KHEPRI_WILDCARD_STAR),
     rabbit_khepri:transaction(
         fun () ->
-                case khepri_tx:get(Path) of
+                case khepri_tx:get_many(Path) of
                     {ok, Result} ->
                         [p(P) || P <- maps:values(Result),
                                  is_atom(P#runtime_parameters.key)];
