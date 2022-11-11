@@ -13,6 +13,8 @@ load(
     "rabbitmq_test_helper",
 )
 
+# gazelle:exclude test/src
+
 APP_NAME = "rabbitmq_web_stomp"
 
 APP_DESCRIPTION = "RabbitMQ STOMP-over-WebSockets support"

@@ -11,6 +11,8 @@ load(
     "rabbitmq_test_helper",
 )
 
+# gazelle:exclude test/src
+
 APP_NAME = "rabbitmq_web_mqtt"
 
 APP_DESCRIPTION = "RabbitMQ MQTT-over-WebSockets adapter"

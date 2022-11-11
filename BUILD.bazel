@@ -4,6 +4,8 @@ load(
     "string_flag",
 )
 load("@rules_pkg//:pkg.bzl", "pkg_tar")
+load("@bazel_gazelle//:def.bzl", "gazelle")
+load("@rules_erlang//gazelle:def.bzl", "GAZELLE_ERLANG_RUNTIME_DEPS")
 load("@rules_erlang//:dialyze.bzl", "plt")
 load("@rules_erlang//:shell.bzl", "shell")
 load("@rules_erlang//:erl_eval.bzl", "erl_eval")
@@ -37,6 +39,17 @@ string_flag(
     name = "elixir_home",
     build_setting_default = "",
     visibility = ["//visibility:public"],
+)
+
+# gazelle:exclude .github
+# gazelle:exclude .elixir_ls
+# gazelle:exclude bazel
+# gazelle:exclude deps/*/priv
+# gazelle:erlang_exclude_when_rule_of_kind_exists rabbitmq_app
+gazelle(
+    name = "gazelle",
+    data = GAZELLE_ERLANG_RUNTIME_DEPS,
+    gazelle = "@rules_erlang//gazelle:gazelle_erlang_binary",
 )
 
 plt(

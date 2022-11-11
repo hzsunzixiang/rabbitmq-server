@@ -12,6 +12,8 @@ load(
     "rabbitmq_test_helper",
 )
 
+# gazelle:exclude test/src
+
 APP_NAME = "rabbitmq_stomp"
 
 APP_DESCRIPTION = "RabbitMQ STOMP plugin"

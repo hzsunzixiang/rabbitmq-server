@@ -3,6 +3,8 @@ load("@rules_erlang//:xref2.bzl", "xref")
 load("@rules_erlang//:dialyze.bzl", "dialyze", "plt")
 load("//:rabbitmq.bzl", "RABBITMQ_TEST_ERLC_OPTS", "rabbitmq_app")
 
+# gazelle:exclude test/src
+
 APP_NAME = "rabbitmq_aws"
 
 APP_DESCRIPTION = "A minimalistic AWS API interface used by rabbitmq-autocluster (3.6.x) and other RabbitMQ plugins"
