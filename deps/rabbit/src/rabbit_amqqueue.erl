@@ -1208,7 +1208,13 @@ is_in_virtual_host(Q, VHostName) ->
 
 -spec list(vhost:name()) -> [amqqueue:amqqueue()].
 list(VHostPath) ->
-    rabbit_store:list_queues(VHostPath).
+    All = rabbit_store:list_queues(VHostPath),
+    NodesRunning = rabbit_nodes:all_running(),
+    lists:filter(fun (Q) ->
+                         Pid = amqqueue:get_pid(Q),
+                         St = amqqueue:get_state(Q),
+                         St =/= stopped orelse lists:member(node(Pid), NodesRunning)
+                 end, All).
 
 -spec list_down(rabbit_types:vhost()) -> [amqqueue:amqqueue()].
 
@@ -1216,7 +1222,7 @@ list_down(VHostPath) ->
     case rabbit_vhost:exists(VHostPath) of
         false -> [];
         true  ->
-            Alive = sets:from_list([amqqueue:get_name(Q) || Q <- rabbit_store:list_queues(VHostPath)]),
+            Alive = sets:from_list([amqqueue:get_name(Q) || Q <- list(VHostPath)]),
             Durable = rabbit_store:list_durable_queues(VHostPath),
             NodesRunning = rabbit_nodes:all_running(),
             lists:filter(fun (Q) ->
