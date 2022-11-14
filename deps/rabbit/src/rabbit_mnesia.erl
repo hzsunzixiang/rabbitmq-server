@@ -340,21 +340,27 @@ wipe() ->
 -spec change_cluster_node_type(node_type()) -> 'ok'.
 
 change_cluster_node_type(Type) ->
-    ensure_mnesia_not_running(),
-    ensure_mnesia_dir(),
-    case is_clustered() of
-        false -> e(not_clustered);
-        true  -> ok
-    end,
-    {_, _, RunningNodes} = discover_cluster(cluster_nodes(all)),
-    %% We might still be marked as running by a remote node since the
-    %% information of us going down might not have propagated yet.
-    Node = case RunningNodes -- [node()] of
-               []        -> e(no_online_cluster_nodes);
-               [Node0|_] -> Node0
-           end,
-    ok = reset(),
-    ok = join_cluster(Node, Type).
+    case rabbit_khepri:is_enabled() of
+        true ->
+            rabbit_log:warning("Change cluster node type is not supported by Khepri. Only disc nodes are allowed. Skipping..."),
+            ok;
+        false ->
+            ensure_mnesia_not_running(),
+            ensure_mnesia_dir(),
+            case is_clustered() of
+                false -> e(not_clustered);
+                true  -> ok
+            end,
+            {_, _, RunningNodes} = discover_cluster(cluster_nodes(all)),
+            %% We might still be marked as running by a remote node since the
+            %% information of us going down might not have propagated yet.
+            Node = case RunningNodes -- [node()] of
+                       []        -> e(no_online_cluster_nodes);
+                       [Node0|_] -> Node0
+                   end,
+            ok = reset(),
+            ok = join_cluster(Node, Type)
+    end.
 
 -spec update_cluster_nodes(node()) -> 'ok'.
 
@@ -879,7 +885,12 @@ remove_node_if_mnesia_running(Node) ->
                 {atomic, ok} ->
                     rabbit_amqqueue:forget_all_durable(Node),
                     rabbit_node_monitor:notify_left_cluster(Node),
-                    leave_khepri_cluster(Node);
+                    %% TODO it doesn't work if the node is down for Khepri,
+                    %% but Khepri might be indeed disabled!!! Should we skip?
+                    case rabbit_khepri:is_enabled() of
+                        true -> leave_khepri_cluster(Node);
+                        false -> ok
+                    end;
                 {aborted, Reason} ->
                     {error, {failed_to_remove_node, Node, Reason}}
             end
