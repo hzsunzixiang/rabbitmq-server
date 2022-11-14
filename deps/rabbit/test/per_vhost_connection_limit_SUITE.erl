@@ -59,10 +59,7 @@ groups() ->
                          {cluster_size_1_network, [], ClusterSize1Tests},
                          {cluster_size_3_network, [], ClusterSize3Tests},
                          {cluster_size_1_direct, [], ClusterSize1Tests},
-                         {cluster_size_3_direct, [], ClusterSize3Tests},
-                         {cluster_rename, [], [
-                                               vhost_limit_after_node_renamed
-                                              ]}
+                         {cluster_size_3_direct, [], ClusterSize3Tests}
                         ]},
      {khepri_migration, [], [from_mnesia_to_khepri]}
     ].
