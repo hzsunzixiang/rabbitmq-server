@@ -1666,8 +1666,15 @@ sync_index_route(Route, true, Fun) ->
     case rabbit_feature_flags:is_enabled(direct_exchange_routing_v2, non_blocking) of
         true ->
             ok = Fun(rabbit_index_route, rabbit_binding:index_route(Route), write);
-        _ ->
-            ok
+       false ->
+            ok;
+        state_changing ->
+            case rabbit_table:exists(rabbit_index_route) of
+                true ->
+                    ok = Fun(rabbit_index_route, rabbit_binding:index_route(Route), write);
+                false ->
+                    ok
+            end
     end;
 sync_index_route(_, _, _) ->
     ok.

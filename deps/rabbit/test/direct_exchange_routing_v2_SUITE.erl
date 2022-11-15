@@ -72,18 +72,22 @@ end_per_suite(Config) ->
     rabbit_ct_helpers:run_teardown_steps(Config).
 
 init_per_group(cluster_size_1, Config) ->
-    rabbit_ct_helpers:set_config(Config, {rmq_nodes_count, 1});
+    rabbit_ct_helpers:set_config(Config, [{rmq_nodes_count, 1},
+                                          {metadata_store, mnesia}]);
 init_per_group(cluster_size_2, Config) ->
-    rabbit_ct_helpers:set_config(Config, {rmq_nodes_count, 2});
+    rabbit_ct_helpers:set_config(Config, [{rmq_nodes_count, 2},
+                                          {metadata_store, mnesia}]);
 init_per_group(cluster_size_3, Config) ->
-    rabbit_ct_helpers:set_config(Config, {rmq_nodes_count, 3});
+    rabbit_ct_helpers:set_config(Config, [{rmq_nodes_count, 3},
+                                          {metadata_store, mnesia}]);
 init_per_group(unclustered_cluster_size_2, Config0) ->
     case rabbit_ct_helpers:is_mixed_versions() of
         true ->
             {skip, "This test group won't work in mixed mode with pre 3.11 releases"};
         false ->
             rabbit_ct_helpers:set_config(Config0, [{rmq_nodes_count, 2},
-                                                   {rmq_nodes_clustered, false}])
+                                                   {rmq_nodes_clustered, false},
+                                                   {metadata_store, mnesia}])
     end;
 init_per_group(start_feature_flag_enabled = Group, Config0) ->
     Config = start_broker(Group, Config0),
@@ -519,7 +523,7 @@ enable_feature_flag_during_binding_churn(Config) ->
                              {rabbit_misc:r(<<"/">>, exchange, DirectX), integer_to_binary(N)}
                      end, lists:seq(trunc(0.2 * BindingsDirectX) + 1, BindingsDirectX)),
     ActualKeys = rabbit_ct_broker_helpers:rpc(Config, 0, mnesia, dirty_all_keys, [?INDEX_TABLE_NAME]),
-    ?assertEqual(lists:sort(ExpectedKeys), lists:sort(ActualKeys)),
+    ?assertEqual([], lists:sort(ExpectedKeys) -- lists:sort(ActualKeys)),
 
     %% cleanup
     delete_queue(Ch1, Q),
