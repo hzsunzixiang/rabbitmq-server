@@ -142,7 +142,9 @@ khepri_routing_path() ->
     [?MODULE, routing].
 
 khepri_routing_path(#binding{source = Src, key = RoutingKey}) ->
-    khepri_routing_path(Src, RoutingKey).
+    khepri_routing_path(Src, RoutingKey);
+khepri_routing_path(#resource{virtual_host = VHost, name = Name}) ->
+    [?MODULE, routing, VHost, Name].
 
 khepri_routing_path(#resource{virtual_host = VHost, name = Name}, RoutingKey) ->
     [?MODULE, routing, VHost, Name, RoutingKey].
@@ -2009,6 +2011,7 @@ remove_bindings_for_destination_in_khepri(DstName, OnlyDurable) ->
     Bindings = maps:fold(fun(_, Set, Acc) ->
                                  sets:to_list(Set) ++ Acc
                          end, [], BindingsMap),
+    lists:foreach(fun(Binding) -> delete_routing(Binding) end, Bindings),
     rabbit_binding:group_bindings_fold(fun maybe_auto_delete_exchange_in_khepri/4,
                                        lists:keysort(#binding.source, Bindings), OnlyDurable).
 
@@ -2028,10 +2031,11 @@ remove_bindings_for_source_in_mnesia(SrcName, ShouldIndexTable) ->
             mnesia:dirty_match_object(rabbit_semi_durable_route, Match)),
       ShouldIndexTable).
 
-remove_bindings_for_source_in_khepri(#resource{virtual_host = VHost, name = Name}) ->
+remove_bindings_for_source_in_khepri(#resource{virtual_host = VHost, name = Name} = Src) ->
     Path = khepri_routes_path() ++ [VHost, Name],
     {ok, Bindings} = khepri_tx:get_many(Path ++ [if_has_data_wildcard()]),
     ok = khepri_tx:delete(Path),
+    ok = khepri_tx:delete(khepri_routing_path(Src)),
     maps:fold(fun(_, Set, Acc) ->
                       sets:to_list(Set) ++ Acc
               end, [], Bindings).
