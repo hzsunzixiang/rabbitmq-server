@@ -502,7 +502,8 @@ write_in_khepri_tx(Group, {SimpleId, _} = Id, Overall, ChildSpec) ->
     S = #mirrored_sup_childspec{key           = {Group, Id},
                                 mirroring_pid = Overall,
                                 childspec     = ChildSpec},
-    ok = khepri_tx:put(khepri_mirrored_supervisor_path(Group, SimpleId), S).
+    ok = khepri_tx:put(khepri_mirrored_supervisor_path(Group, SimpleId), S),
+    ChildSpec.
 
 delete_in_mnesia(Group, Id) ->
     ok = mnesia:delete({?TABLE, {Group, Id}}).
