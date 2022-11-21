@@ -29,18 +29,14 @@
 
 all() ->
     [
-     {group, mnesia_store},
-     {group, khepri_store}
+     {group, essential},
+     {group, cluster_size_3}
     ].
 
 groups() ->
     [
-     {mnesia_store, [], [{essential, [], essential()},
-                         {cluster_size_3, [], [max_hops]}
-                        ]},
-     {khepri_store, [], [{essential, [], essential()},
-                         {cluster_size_3, [], [max_hops]}
-                        ]},
+     {essential, [], essential()},
+     {cluster_size_3, [], [max_hops]},
      {cycle_protection, [], [
                              %% TBD: port from v3.10.x in an Erlang 25-compatible way
                             ]},
@@ -77,10 +73,6 @@ init_per_suite(Config) ->
 end_per_suite(Config) ->
   rabbit_ct_helpers:run_teardown_steps(Config).
 
-init_per_group(mnesia_store, Config) ->
-    rabbit_ct_helpers:set_config(Config, [{metadata_store, mnesia}]);
-init_per_group(khepri_store, Config) ->
-    rabbit_ct_helpers:set_config(Config, [{metadata_store, khepri}]);
 %% Some of the "regular" tests but in the single channel mode.
 init_per_group(essential, Config) ->
   SetupFederation = [
@@ -118,10 +110,6 @@ init_per_group1(_Group, Config) ->
     rabbit_ct_broker_helpers:setup_steps() ++
     rabbit_ct_client_helpers:setup_steps()).
 
-end_per_group(mnesia_store, Config) ->
-    Config;
-end_per_group(khepri_store, Config) ->
-    Config;
 end_per_group(_, Config) ->
   rabbit_ct_helpers:run_steps(Config,
     rabbit_ct_client_helpers:teardown_steps() ++

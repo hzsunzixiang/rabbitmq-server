@@ -26,21 +26,16 @@
 
 all() ->
     [
-     {group, mnesia_store},
-     {group, khepri_store}
+     {group, classic_queue},
+     {group, quorum_queue},
+     {group, mixed}
     ].
 
 groups() ->
-    [{mnesia_store, [], [
-                         {classic_queue, [], all_tests()},
-                         {quorum_queue, [], all_tests()},
-                         {mixed, [], all_tests()}
-                        ]},
-     {khepri_store, [], [
-                         {classic_queue, [], all_tests()},
-                         {quorum_queue, [], all_tests()},
-                         {mixed, [], all_tests()}
-                        ]}
+    [
+     {classic_queue, [], all_tests()},
+     {quorum_queue, [], all_tests()},
+     {mixed, [], all_tests()}
     ].
 
 all_tests() ->
@@ -72,10 +67,6 @@ init_per_suite(Config) ->
 end_per_suite(Config) ->
     rabbit_ct_helpers:run_teardown_steps(Config).
 
-init_per_group(mnesia_store, Config) ->
-    rabbit_ct_helpers:set_config(Config, [{metadata_store, mnesia}]);
-init_per_group(khepri_store, Config) ->
-    rabbit_ct_helpers:set_config(Config, [{metadata_store, khepri}]);
 init_per_group(classic_queue, Config) ->
     rabbit_ct_helpers:set_config(
       Config,
@@ -141,10 +132,6 @@ init_per_group1(Group, Config) ->
                                 rabbit_ct_client_helpers:setup_steps() ++
                                 SetupFederation ++ Disambiguate).
 
-end_per_group(mnesia_store, Config) ->
-    Config;
-end_per_group(khepri_store, Config) ->
-    Config;
 end_per_group(without_disambiguate, Config) ->
     Config;
 end_per_group(with_disambiguate, Config) ->
