@@ -201,7 +201,7 @@ assert_args_equivalence(#exchange{ name = Name, arguments = Args },
 
 -spec exists(name()) -> boolean().
 exists(Name) ->
-    ets:member(rabbit_exchange, Name).
+    rabbit_store:exists_exchange(Name).
 
 -spec lookup
         (name()) -> rabbit_types:ok(rabbit_types:exchange()) |

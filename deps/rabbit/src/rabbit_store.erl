@@ -19,7 +19,7 @@
          next_exchange_serial/1, delete_exchange_in_khepri/3,
          delete_exchange_in_mnesia/3, delete_exchange/3,
          recover_exchanges/1, store_durable_exchanges/1, match_exchanges/1,
-         delete_exchange_serial/1]).
+         delete_exchange_serial/1, exists_exchange/1]).
 
 -export([exists_binding/1, add_binding/2, delete_binding/2, list_bindings/1,
          list_bindings_for_source/1, list_bindings_for_destination/1,
@@ -198,6 +198,15 @@ list_exchange_names() ->
                   _ ->
                       []
               end
+      end).
+
+exists_exchange(Name) ->
+    rabbit_khepri:try_mnesia_or_khepri(
+      fun() ->
+              ets:member(rabbit_exchange, Name)
+      end,
+      fun() ->
+              rabbit_khepri:exists(khepri_exchange_path(Name))
       end).
 
 list_exchanges(VHost) ->
