@@ -85,6 +85,9 @@ init_per_group(mnesia_store, Config) ->
 init_per_group(khepri_store, Config) ->
     FFs = [rabbit_consistent_hash_exchange_raft_based_metadata_store],
     rabbit_ct_helpers:set_config(Config, [{metadata_store, {khepri, FFs}}]);
+init_per_group(khepri_migration = Group, Config0) ->
+    Config = rabbit_ct_helpers:set_config(Config0, [{metadata_store, mnesia}]),
+    init_per_group(Group, Config, 1);
 init_per_group(clustered = Group, Config) ->
     case rabbit_ct_helpers:is_mixed_versions() of
         false ->
@@ -111,6 +114,8 @@ init_per_group(Group, Config, NodesCount) ->
 end_per_group(mnesia_store, Config) ->
     Config;
 end_per_group(khepri_store, Config) ->
+    Config;
+end_per_group(khepri_migration, Config) ->
     Config;
 end_per_group(_, Config) ->
     rabbit_ct_helpers:run_teardown_steps(Config,
