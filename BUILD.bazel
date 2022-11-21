@@ -1,3 +1,4 @@
+load("@rules_erlang//:erlang_bytecode2.bzl", "erlc_opts")
 load(
     "@bazel_skylib//rules:common_settings.bzl",
     "bool_flag",
@@ -14,7 +15,7 @@ load(":rabbitmq_home.bzl", "rabbitmq_home")
 load(":rabbitmq_run.bzl", "rabbitmq_run", "rabbitmq_run_command")
 load(":rabbitmqctl.bzl", "rabbitmqctl")
 load(":dist.bzl", "package_generic_unix", "source_archive")
-load(":rabbitmq.bzl", "all_plugins")
+load(":rabbitmq.bzl", "RABBITMQ_ERLC_OPTS", "RABBITMQ_TEST_ERLC_OPTS", "all_plugins", "without")
 
 exports_files([
     "scripts/bazel/rabbitmq-run.sh",
@@ -45,10 +46,16 @@ string_flag(
 # gazelle:exclude .elixir_ls
 # gazelle:exclude bazel
 # gazelle:exclude deps/*/priv
-# gazelle:erlang_exclude_when_rule_of_kind_exists rabbitmq_app
+# gazelle:erlang_apps_dirs deps
+# gazelle:erlang_skip_rules test_erlang_app
+# gazelle:erlang_generate_beam_files_macro
+# gazelle:map_kind erlang_app rabbitmq_app //rabbitmq.bzl
 gazelle(
     name = "gazelle",
     data = GAZELLE_ERLANG_RUNTIME_DEPS,
+    extra_args = [
+        "--verbose",
+    ],
     gazelle = "@rules_erlang//gazelle:gazelle_erlang_binary",
 )
 
@@ -294,4 +301,22 @@ cat << 'EOF' > $@
 EOF
 """,
     executable = True,
+)
+
+erlc_opts(
+    name = "erlc_opts",
+    values = select({
+        "@rules_erlang//:debug_build": without("+deterministic", RABBITMQ_ERLC_OPTS),
+        "//conditions:default": RABBITMQ_ERLC_OPTS,
+    }),
+    visibility = [":__subpackages__"],
+)
+
+erlc_opts(
+    name = "test_erlc_opts",
+    values = select({
+        "@rules_erlang//:debug_build": without("+deterministic", RABBITMQ_TEST_ERLC_OPTS),
+        "//conditions:default": RABBITMQ_TEST_ERLC_OPTS,
+    }),
+    visibility = [":__subpackages__"],
 )
