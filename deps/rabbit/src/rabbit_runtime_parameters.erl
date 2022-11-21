@@ -382,6 +382,10 @@ list_in_khepri('_', Component) ->
 list_in_khepri(VHost, '_') ->
     list_in_khepri(VHost, ?KHEPRI_WILDCARD_STAR);
 list_in_khepri(VHost, Component) ->
+    case VHost of
+        ?KHEPRI_WILDCARD_STAR -> ok;
+        _                     -> rabbit_vhost:assert(VHost)
+    end,
     rabbit_khepri:transaction(
       fun() ->
               list_in_khepri_tx(VHost, Component)
