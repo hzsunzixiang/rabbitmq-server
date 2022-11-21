@@ -25,6 +25,9 @@
          credit/4,
          dequeue/4,
          info/2,
+         queue_length/1,
+         get_replicas/1,
+         transfer_leadership/2,
          init/1,
          close/1,
          update/2,
@@ -625,6 +628,15 @@ i(type, _) ->
     stream;
 i(_, _) ->
     ''.
+
+queue_length(Q) ->
+    i(messages, Q).
+
+get_replicas(Q) ->
+    i(members, Q).
+
+transfer_leadership(_Q, _Destination) ->
+    {not_migrated, not_implemented}.
 
 -spec status(rabbit_types:vhost(), Name :: rabbit_misc:resource_name()) ->
     [[{binary(), term()}]] | {error, term()}.
