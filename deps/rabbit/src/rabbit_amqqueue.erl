@@ -68,6 +68,7 @@
 -export([deactivate_limit_all/2]).
 
 -export([prepend_extra_bcc/1]).
+-export([not_found_or_absent_dirty/1]).
 
 %% internal
 -export([internal_declare/2, internal_delete/2, run_backing_queue/3,
@@ -2004,3 +2005,6 @@ get_bcc_queue(Q, BCCName) ->
     #resource{virtual_host = VHost} = amqqueue:get_name(Q),
     BCCQueueName = rabbit_misc:r(VHost, queue, BCCName),
     rabbit_amqqueue:lookup(BCCQueueName).
+
+not_found_or_absent_dirty(Name) ->
+    rabbit_store:not_found_or_absent_queue_dirty(Name).
