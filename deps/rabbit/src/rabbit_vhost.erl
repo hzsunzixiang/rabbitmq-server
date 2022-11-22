@@ -34,6 +34,7 @@
 -export([khepri_vhosts_path/0,
          khepri_vhost_path/1]).
 
+-export([clear_data/0]).
 -ifdef(TEST).
 -export([with_in_khepri/2,
          do_add_to_mnesia/2,
@@ -56,9 +57,7 @@
          clear_permissions_in_khepri/2,
          internal_delete_in_mnesia/1,
          internal_delete_in_khepri/1,
-         internal_delete_in_khepri/2,
-
-         clear_data/0]).
+         internal_delete_in_khepri/2]).
 -endif.
 
 %%

@@ -65,6 +65,7 @@
 
 %% for testing
 -export([hashing_module_for_user/1, expand_topic_permission/2]).
+-export([clear_data/0]).
 
 -ifdef(TEST).
 -export([lookup_user_in_mnesia/1,
@@ -100,9 +101,7 @@
          clear_topic_permissions_in_khepri/2,
 
          extract_user_permission_params/2,
-         extract_topic_permission_params/2,
-
-         clear_data/0]).
+         extract_topic_permission_params/2]).
 -endif.
 
 -import(rabbit_data_coercion, [to_atom/1, to_list/1, to_binary/1]).
