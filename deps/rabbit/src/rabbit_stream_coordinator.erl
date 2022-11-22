@@ -1862,16 +1862,16 @@ select_leader(#{system_time := Ts,
                 index := Idx}, EpochOffsets) ->
     %% this logic gets all potential nodes and does a selection with some
     %% degree of random
-    [{_, Spec} | _] = Sorted = lists:sort(
-                                 fun({_, {Epoch, OffsetA}}, {_, {Epoch, OffsetB}}) ->
-                                         OffsetA >= OffsetB;
-                                    ({_, {EpochA, _}}, {_, {EpochB, _}}) ->
-                                         EpochA >= EpochB;
-                                    ({_, empty}, _) ->
-                                         false;
-                                    (_, {_, empty}) ->
-                                         true
-                                 end, EpochOffsets),
+    [{_, Spec} | _] = Sorted =
+        lists:sort(fun({_, {Epoch, OffsetA}}, {_, {Epoch, OffsetB}}) ->
+                           OffsetA >= OffsetB;
+                      ({_, {EpochA, _}}, {_, {EpochB, _}}) ->
+                           EpochA >= EpochB;
+                      ({_, empty}, _) ->
+                           false;
+                      (_, {_, empty}) ->
+                           true
+                   end, EpochOffsets),
     Potential = lists:takewhile(fun ({_N, S}) ->
                                         S == Spec
                                 end, Sorted),
@@ -1881,7 +1881,6 @@ select_leader(#{system_time := Ts,
         _ ->
             % there are more than one use modulo to select
             Nth = ((Ts + Idx) rem length(Potential)) + 1,
-    ct:pal("Potential ~p Nth ~b" , [Potential, Nth]),
             {Node, _} = lists:nth(Nth, Potential),
             Node
     end.
