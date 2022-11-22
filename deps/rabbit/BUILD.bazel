@@ -470,11 +470,6 @@ suites = [
     ),
     rabbitmq_integration_suite(
         PACKAGE,
-        name = "listeners_SUITE",
-        size = "small",
-    ),
-    rabbitmq_integration_suite(
-        PACKAGE,
         name = "list_consumers_sanity_check_SUITE",
         size = "medium",
     ),

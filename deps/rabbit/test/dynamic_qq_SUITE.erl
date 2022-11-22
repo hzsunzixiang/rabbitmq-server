@@ -124,7 +124,6 @@ force_delete_if_no_consensus(Config) ->
     
     RaName = quorum_queue_utils:ra_name(QName),
     {ok, [{_, A}, {_, B}, {_, C}], _} = ra:members({RaName, Server}),
-    Servers = [A, B, C],
 
     ACh = rabbit_ct_client_helpers:open_channel(Config, A),
     rabbit_ct_client_helpers:publish(ACh, QName, 10),
@@ -166,7 +165,6 @@ takeover_on(Config, Fun) ->
 
     RaName = quorum_queue_utils:ra_name(QName),
     {ok, [{_, A}, {_, B}, {_, C}], _} = ra:members({RaName, Server}),
-    Servers = [A, B, C],
     ok = rabbit_ct_broker_helpers:restart_node(Config, B),
 
     ok = rabbit_ct_broker_helpers:Fun(Config, C),

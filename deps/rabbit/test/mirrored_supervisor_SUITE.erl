@@ -227,8 +227,6 @@ no_migration_on_shutdown(Config) ->
                Config, 0, ?MODULE, no_migration_on_shutdown1, [?config(sup_prefix, Config)]).
 
 no_migration_on_shutdown1(Sup) ->
-    Sup1 = sup(Sup, 1),
-    Sup2 = sup(Sup, 2),
     with_sups(
       fun([Evil, _]) ->
               {ok, _} = ?MS:start_child(Evil, childspec(worker3)),

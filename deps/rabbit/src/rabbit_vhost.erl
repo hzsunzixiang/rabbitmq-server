@@ -15,7 +15,7 @@
 
 -export([recover/0, recover/1, read_config/1]).
 -export([add/2, add/3, add/4, delete/2, exists/1,
-         with_in_mnesia/2, with_in_khepri_tx/2,
+         with_in_mnesia/2, with_in_khepri_tx/2, with_in_khepri/2,
          with_user_and_vhost/3, with_user_and_vhost_in_mnesia/3, with_user_and_vhost_in_khepri/3,
          assert/1, update/2,
          set_limits/2, vhost_cluster_state/1, is_running_on_all_nodes/1, await_running_on_all_nodes/2,
@@ -36,8 +36,7 @@
 
 -export([clear_data/0]).
 -ifdef(TEST).
--export([with_in_khepri/2,
-         do_add_to_mnesia/2,
+-export([do_add_to_mnesia/2,
          do_add_to_khepri/2,
          lookup_in_mnesia/1,
          lookup_in_khepri/1,

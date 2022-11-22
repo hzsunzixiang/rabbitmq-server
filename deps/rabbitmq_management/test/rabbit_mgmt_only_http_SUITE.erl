@@ -122,10 +122,10 @@ init_per_group(all_tests_with_prefix=Group, Config0) ->
     PathConfig = {rabbitmq_management, [{path_prefix, ?PATH_PREFIX}]},
     Config1 = rabbit_ct_helpers:merge_app_env(Config0, PathConfig),
     Config2 = finish_init(Group, Config1),
-    Config3 = start_broker(Config2);
+    start_broker(Config2);
 init_per_group(Group, Config0) ->
     Config1 = finish_init(Group, Config0),
-    Config2 = start_broker(Config1).
+    start_broker(Config1).
 
 end_per_group(_, Config) ->
     inets:stop(),

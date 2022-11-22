@@ -35,7 +35,6 @@
          match/1,
          match/2,
          exists/1,
-         find/2,
          list/1,
          list_child_nodes/1,
          count_children/1,
@@ -411,8 +410,6 @@ match(Path) ->
 match(Path, Options) -> khepri:get_many(?STORE_ID, Path, Options).
 
 exists(Path) -> khepri:exists(?STORE_ID, Path, #{favor => low_latency}).
-
-find(Path, Condition) -> khepri:find(?STORE_ID, Path, Condition).
 
 list(Path) -> khepri:get_many(?STORE_ID, Path ++ [?KHEPRI_WILDCARD_STAR]).
 
