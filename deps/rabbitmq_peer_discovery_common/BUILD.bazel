@@ -3,12 +3,16 @@ load("@rules_erlang//:dialyze.bzl", "dialyze", "plt")
 load(
     "//:rabbitmq.bzl",
     "RABBITMQ_DIALYZER_OPTS",
-    "RABBITMQ_ERLC_OPTS",
-    "RABBITMQ_TEST_ERLC_OPTS",
     "assert_suites",
     "broker_for_integration_suites",
     "rabbitmq_app",
     "rabbitmq_integration_suite",
+)
+load(
+    ":app.bzl",
+    "all_beam_files",
+    "all_srcs",
+    "all_test_beam_files",
 )
 
 APP_NAME = "rabbitmq_peer_discovery_common"
@@ -29,13 +33,18 @@ RUNTIME_DEPS = [
     "//deps/rabbit:erlang_app",
 ]
 
+all_beam_files()
+
+all_test_beam_files()
+
+all_srcs()
+
 rabbitmq_app(
     app_description = APP_DESCRIPTION,
     app_module = APP_MODULE,
     app_name = APP_NAME,
     extra_apps = EXTRA_APPS,
-    runtime_deps = RUNTIME_DEPS,
-    deps = DEPS,
+    deps = DEPS + RUNTIME_DEPS,
 )
 
 xref()
@@ -67,4 +76,10 @@ suites = [
 assert_suites(
     suites,
     glob(["test/**/*_SUITE.erl"]),
+)
+
+alias(
+    name = "rabbitmq_peer_discovery_common",
+    actual = ":erlang_app",
+    visibility = ["//visibility:public"],
 )

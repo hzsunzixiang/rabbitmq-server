@@ -101,8 +101,9 @@ cp escript/rabbitmqctl ${{ABS_ESCRIPT_PATH}}
 cp _build/${{MIX_ENV}}/lib/rabbitmqctl/ebin/* ${{ABS_EBIN_DIR}}
 cp _build/${{MIX_ENV}}/lib/rabbitmqctl/consolidated/* ${{ABS_EBIN_DIR}}
 
-tar --file ${{ABS_FETCHED_SRCS}} \\
-    --create deps
+tar --create \\
+    --file ${{ABS_FETCHED_SRCS}} \\
+    deps
 
 # remove symlinks from the _build directory since it
 # is not used, and bazel does not allow them

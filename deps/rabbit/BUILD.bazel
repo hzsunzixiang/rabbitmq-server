@@ -11,6 +11,12 @@ load(
     "rabbitmq_suite",
     "rabbitmq_test_helper",
 )
+load(
+    ":app.bzl",
+    "all_beam_files",
+    "all_srcs",
+    "all_test_beam_files",
+)
 load(":bats.bzl", "bats")
 
 exports_files(glob([
@@ -182,15 +188,21 @@ EXTRA_APPS = [
     "xmerl",
 ]
 
+all_beam_files()
+
+all_test_beam_files()
+
+all_srcs()
+
 rabbitmq_app(
+    all_srcs = [":all_srcs"],
     app_description = "RabbitMQ",
     app_env = _APP_ENV,
     app_module = APP_MODULE,
     app_name = "rabbit",
     app_registered = APP_REGISTERED,
     extra_apps = EXTRA_APPS,
-    runtime_deps = RUNTIME_DEPS,
-    deps = DEPS,
+    deps = DEPS + RUNTIME_DEPS,
 )
 
 xref()
@@ -1127,5 +1139,11 @@ done
 tar --strip-components 1 -cf $@ web-manpages-tmp/*
 rm -dr web-manpages-tmp
 """,
+    visibility = ["//visibility:public"],
+)
+
+alias(
+    name = "rabbit",
+    actual = ":erlang_app",
     visibility = ["//visibility:public"],
 )

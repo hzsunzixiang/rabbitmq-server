@@ -1,15 +1,44 @@
+load("@rules_erlang//:erlang_bytecode2.bzl", "erlang_bytecode")
 load("@rules_erlang//:erlang_app.bzl", "erlang_app")
 load("//:rabbitmq.bzl", "BROKER_VERSION_REQUIREMENTS_ANY")
+
+# gazelle:erlang_generate_beam_files_macro false
 
 DEPS = [
     "//deps/rabbit_common:erlang_app",
     "//deps/rabbit:erlang_app",
 ]
 
+erlang_bytecode(
+    name = "ebin_my_plugin_beam",
+    srcs = ["src/my_plugin.erl"],
+    outs = ["ebin/my_plugin.beam"],
+    erlc_opts = "//:erlc_opts",
+)
+
+filegroup(
+    name = "beam_files",
+    srcs = ["ebin/my_plugin.beam"],
+)
+
+filegroup(
+    name = "all_srcs",
+    srcs = ["src/my_plugin.erl"],
+)
+
 erlang_app(
+    all_srcs = [":all_srcs"],
     app_description = "Plugin to test feature flags",
     app_extra_keys = BROKER_VERSION_REQUIREMENTS_ANY,
     app_name = "my_plugin",
     app_version = "1.0.0",
+    beam_files = [":beam_files"],
+    public_hdrs = [],
     deps = DEPS,
+)
+
+alias(
+    name = "my_plugin",
+    actual = ":erlang_app",
+    visibility = ["//visibility:public"],
 )

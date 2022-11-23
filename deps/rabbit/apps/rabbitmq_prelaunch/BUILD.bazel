@@ -1,6 +1,12 @@
 load("@rules_erlang//:xref2.bzl", "xref")
 load("@rules_erlang//:dialyze.bzl", "dialyze", "plt")
 load("//:rabbitmq.bzl", "APP_VERSION", "rabbitmq_app", "rabbitmq_suite")
+load(
+    ":app.bzl",
+    "all_beam_files",
+    "all_srcs",
+    "all_test_beam_files",
+)
 
 APP_NAME = "rabbitmq_prelaunch"
 
@@ -17,13 +23,20 @@ DEPS = [
     "//deps/rabbit_common:erlang_app",
 ]
 
+all_beam_files()
+
+all_test_beam_files()
+
+all_srcs()
+
 rabbitmq_app(
+    all_srcs = [":all_srcs"],
     app_description = APP_DESCRIPTION,
     app_module = APP_MODULE,
     app_name = APP_NAME,
     app_version = APP_VERSION,
-    runtime_deps = RUNTIME_DEPS,
-    deps = DEPS,
+    beam_files = [":beam_files"],
+    deps = DEPS + RUNTIME_DEPS,
 )
 
 xref(
@@ -52,3 +65,9 @@ suites = [
         size = "small",
     ),
 ]
+
+alias(
+    name = "rabbitmq_prelaunch",
+    actual = ":erlang_app",
+    visibility = ["//visibility:public"],
+)

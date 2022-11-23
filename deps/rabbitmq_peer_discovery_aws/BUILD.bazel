@@ -9,6 +9,12 @@ load(
     "rabbitmq_integration_suite",
     "rabbitmq_suite",
 )
+load(
+    ":app.bzl",
+    "all_beam_files",
+    "all_srcs",
+    "all_test_beam_files",
+)
 
 APP_NAME = "rabbitmq_peer_discovery_aws"
 
@@ -28,12 +34,17 @@ RUNTIME_DEPS = [
     "//deps/rabbit:erlang_app",
 ]
 
+all_beam_files()
+
+all_test_beam_files()
+
+all_srcs()
+
 rabbitmq_app(
     app_description = APP_DESCRIPTION,
     app_name = APP_NAME,
     extra_apps = EXTRA_APPS,
-    runtime_deps = RUNTIME_DEPS,
-    deps = DEPS,
+    deps = DEPS + RUNTIME_DEPS,
 )
 
 xref()
@@ -92,4 +103,10 @@ suites = [
 assert_suites(
     suites,
     glob(["test/**/*_SUITE.erl"]),
+)
+
+alias(
+    name = "rabbitmq_peer_discovery_aws",
+    actual = ":erlang_app",
+    visibility = ["//visibility:public"],
 )

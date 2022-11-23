@@ -114,12 +114,16 @@ def rabbitmq_app(
         app_env = "",
         app_extra_keys = "",
         extra_apps = [],
-        extra_hdrs = [],
-        extra_srcs = [],
         extra_priv = [],
-        build_deps = [],
-        deps = [],
-        runtime_deps = []):
+        beam_files = [":beam_files"],
+        public_hdrs = None,
+        all_srcs = None,
+        deps = []):
+    if beam_files != [":beam_files"]:
+        fail("beam_files attr exists for compatibility only, and must be set to '[\":beam_files\"]'")
+    if public_hdrs == None:
+        public_hdrs = native.glob(["include/*.hrl"])
+
     erlang_app(
         app_name = app_name,
         app_version = app_version,
@@ -129,19 +133,11 @@ def rabbitmq_app(
         app_env = app_env,
         app_extra_keys = app_extra_keys,
         extra_apps = extra_apps,
-        extra_hdrs = extra_hdrs,
-        extra_srcs = extra_srcs,
         extra_priv = extra_priv,
-        erlc_opts = select({
-            "@rules_erlang//:debug_build": without("+deterministic", RABBITMQ_ERLC_OPTS),
-            "//conditions:default": RABBITMQ_ERLC_OPTS,
-        }) + select({
-            Label("//:test_build"): ["-DTEST=1", "+nowarn_export_all"],
-            "//conditions:default": [],
-        }),
-        build_deps = build_deps,
+        beam_files = beam_files,
+        public_hdrs = public_hdrs,
+        all_srcs = all_srcs,
         deps = deps,
-        runtime_deps = runtime_deps,
     )
 
     test_erlang_app(
@@ -153,16 +149,11 @@ def rabbitmq_app(
         app_env = app_env,
         app_extra_keys = app_extra_keys,
         extra_apps = extra_apps,
-        extra_hdrs = extra_hdrs,
-        extra_srcs = extra_srcs,
         extra_priv = extra_priv,
-        erlc_opts = select({
-            "@rules_erlang//:debug_build": without("+deterministic", RABBITMQ_TEST_ERLC_OPTS),
-            "//conditions:default": RABBITMQ_TEST_ERLC_OPTS,
-        }),
-        build_deps = with_test_versions(build_deps),
+        beam_files = [":test_beam_files"],
+        public_hdrs = public_hdrs + native.glob(["src/*.hrl"], exclude = public_hdrs),
+        all_srcs = all_srcs,
         deps = with_test_versions(deps),
-        runtime_deps = with_test_versions(runtime_deps),
     )
 
 def rabbitmq_suite(erlc_opts = [], test_env = {}, **kwargs):

@@ -6,6 +6,12 @@ load(
     "rabbitmq_app",
     "rabbitmq_suite",
 )
+load(
+    ":app.bzl",
+    "all_beam_files",
+    "all_srcs",
+    "all_test_beam_files",
+)
 
 py_binary(
     name = "codegen",
@@ -61,12 +67,23 @@ APP_EXTRA_KEYS = """%% Hex.pm package informations.
     ]}
 """
 
+all_beam_files()
+
+all_test_beam_files()
+
+all_srcs()
+
 rabbitmq_app(
+    all_srcs = [":all_srcs"],
     app_description = "Modules shared by rabbitmq-amqp1.0 and rabbitmq-amqp1.0-client",
     app_extra_keys = APP_EXTRA_KEYS,
     app_name = "amqp10_common",
-    extra_hdrs = ["include/amqp10_framing.hrl"],
-    extra_srcs = ["src/amqp10_framing0.erl"],
+    public_hdrs = glob(
+        ["include/*.hrl"],
+        exclude = ["include/amqp10_framing.hrl"],
+    ) + [
+        "include/amqp10_framing.hrl",
+    ],
 )
 
 xref()
@@ -87,4 +104,10 @@ suites = [
 assert_suites(
     suites,
     glob(["test/**/*_SUITE.erl"]),
+)
+
+alias(
+    name = "amqp10_common",
+    actual = ":erlang_app",
+    visibility = ["//visibility:public"],
 )

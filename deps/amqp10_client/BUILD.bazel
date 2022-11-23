@@ -8,6 +8,12 @@ load(
     "rabbitmq_integration_suite",
     "rabbitmq_suite",
 )
+load(
+    ":app.bzl",
+    "all_beam_files",
+    "all_srcs",
+    "all_test_beam_files",
+)
 
 APP_NAME = "amqp10_client"
 
@@ -49,12 +55,18 @@ DEPS = [
     "//deps/amqp10_common:erlang_app",
 ]
 
+all_beam_files()
+
+all_test_beam_files()
+
+all_srcs()
+
 rabbitmq_app(
+    all_srcs = [":all_srcs"],
     app_description = APP_DESCRIPTION,
     app_extra_keys = APP_EXTRA_KEYS,
     app_module = APP_MODULE,
     app_name = APP_NAME,
-    build_deps = BUILD_DEPS,
     extra_apps = EXTRA_APPS,
     deps = DEPS,
 )
@@ -111,4 +123,10 @@ suites = [
 assert_suites(
     suites,
     glob(["test/**/*_SUITE.erl"]),
+)
+
+alias(
+    name = "amqp10_client",
+    actual = ":erlang_app",
+    visibility = ["//visibility:public"],
 )

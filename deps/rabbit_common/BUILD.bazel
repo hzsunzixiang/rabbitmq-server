@@ -6,6 +6,12 @@ load(
     "rabbitmq_app",
     "rabbitmq_suite",
 )
+load(
+    ":app.bzl",
+    "all_beam_files",
+    "all_srcs",
+    "all_test_beam_files",
+)
 
 py_binary(
     name = "codegen",
@@ -51,14 +57,6 @@ genrule(
     tools = [":codegen"],
 )
 
-RUNTIME_DEPS = [
-    "@thoas//:erlang_app",
-    "@recon//:erlang_app",
-    "@credentials_obfuscation//:erlang_app",
-]
-
-APP_NAME = "rabbit_common"
-
 APP_EXTRA_KEYS = """
 %% Hex.pm package informations.
 	{licenses, ["MPL-2.0"]},
@@ -91,19 +89,28 @@ EXTRA_APPS = [
     "xmerl",
 ]
 
+all_beam_files()
+
+all_test_beam_files()
+
+all_srcs()
+
 rabbitmq_app(
     app_description = "Modules shared by rabbitmq-server and rabbitmq-erlang-client",
     app_extra_keys = APP_EXTRA_KEYS,
-    app_name = APP_NAME,
+    app_name = "rabbit_common",
     extra_apps = EXTRA_APPS,
-    extra_hdrs = [
+    public_hdrs = glob(
+        ["include/*.hrl"],
+        exclude = ["include/rabbit_framing.hrl"],
+    ) + [
         "include/rabbit_framing.hrl",
     ],
-    extra_srcs = [
-        "src/rabbit_framing_amqp_0_8.erl",
-        "src/rabbit_framing_amqp_0_9_1.erl",
+    deps = [
+        "@credentials_obfuscation//:erlang_app",
+        "@recon//:erlang_app",
+        "@thoas//:erlang_app",
     ],
-    runtime_deps = RUNTIME_DEPS,
 )
 
 xref(
@@ -166,4 +173,10 @@ suites = [
 assert_suites(
     suites,
     glob(["test/**/*_SUITE.erl"]),
+)
+
+alias(
+    name = "rabbit_common",
+    actual = ":erlang_app",
+    visibility = ["//visibility:public"],
 )

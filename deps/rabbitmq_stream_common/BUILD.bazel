@@ -7,10 +7,22 @@ load(
     "rabbitmq_app",
     "rabbitmq_suite",
 )
+load(
+    ":app.bzl",
+    "all_beam_files",
+    "all_srcs",
+    "all_test_beam_files",
+)
 
 APP_NAME = "rabbitmq_stream_common"
 
 APP_DESCRIPTION = "RabbitMQ Stream Common"
+
+all_beam_files()
+
+all_test_beam_files()
+
+all_srcs()
 
 rabbitmq_app(
     app_description = APP_DESCRIPTION,
@@ -33,4 +45,10 @@ suites = [
 assert_suites(
     suites,
     glob(["test/**/*_SUITE.erl"]),
+)
+
+alias(
+    name = "rabbitmq_stream_common",
+    actual = ":erlang_app",
+    visibility = ["//visibility:public"],
 )

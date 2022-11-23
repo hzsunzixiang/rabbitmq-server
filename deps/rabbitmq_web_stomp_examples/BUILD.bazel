@@ -5,6 +5,12 @@ load(
     "RABBITMQ_DIALYZER_OPTS",
     "rabbitmq_app",
 )
+load(
+    ":app.bzl",
+    "all_beam_files",
+    "all_srcs",
+    "all_test_beam_files",
+)
 
 APP_NAME = "rabbitmq_web_stomp_examples"
 
@@ -23,12 +29,18 @@ RUNTIME_DEPS = [
     "//deps/rabbitmq_web_stomp:erlang_app",
 ]
 
+all_beam_files()
+
+all_test_beam_files()
+
+all_srcs()
+
 rabbitmq_app(
     app_description = APP_DESCRIPTION,
     app_env = APP_ENV,
     app_module = APP_MODULE,
     app_name = APP_NAME,
-    runtime_deps = RUNTIME_DEPS,
+    deps = RUNTIME_DEPS,
 )
 
 xref()
@@ -36,4 +48,10 @@ xref()
 dialyze(
     dialyzer_opts = RABBITMQ_DIALYZER_OPTS,
     plt = "//:base_plt",
+)
+
+alias(
+    name = "rabbitmq_web_stomp_examples",
+    actual = ":erlang_app",
+    visibility = ["//visibility:public"],
 )

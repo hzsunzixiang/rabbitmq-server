@@ -1,10 +1,21 @@
 load("@rules_erlang//:erlang_app.bzl", "erlang_app")
+load(
+    ":app.bzl",
+    "all_beam_files",
+    "all_srcs",
+)
+
+all_beam_files()
+
+all_srcs()
 
 erlang_app(
+    all_srcs = [":all_srcs"],
     app_description = "Trust store HTTP server",
     app_module = "trust_store_http_app",
     app_name = "trust_store_http",
     app_version = "1.0.0",
+    beam_files = [":beam_files"],
     extra_apps = [
         "ssl",
     ],
@@ -12,4 +23,10 @@ erlang_app(
         "@cowboy//:erlang_app",
         "@thoas//:erlang_app",
     ],
+)
+
+alias(
+    name = "trust_store_http",
+    actual = ":erlang_app",
+    visibility = ["//visibility:public"],
 )

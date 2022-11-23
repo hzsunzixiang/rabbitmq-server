@@ -10,6 +10,12 @@ load(
     "rabbitmq_integration_suite",
     "rabbitmq_suite",
 )
+load(
+    ":app.bzl",
+    "all_beam_files",
+    "all_srcs",
+    "all_test_beam_files",
+)
 
 APP_ENV = """[
 	    {default_user, "guest"},
@@ -35,14 +41,18 @@ RUNTIME_DEPS = [
     "//deps/rabbit:erlang_app",
 ]
 
+all_beam_files()
+
+all_test_beam_files()
+
+all_srcs()
+
 rabbitmq_app(
     app_description = APP_DESCRIPTION,
     app_env = APP_ENV,
     app_extra_keys = BROKER_VERSION_REQUIREMENTS_ANY,
     app_name = APP_NAME,
-    build_deps = BUILD_DEPS,
-    runtime_deps = RUNTIME_DEPS,
-    deps = DEPS,
+    deps = DEPS + RUNTIME_DEPS,
 )
 
 xref(
@@ -120,4 +130,10 @@ suites = [
 assert_suites(
     suites,
     glob(["test/**/*_SUITE.erl"]),
+)
+
+alias(
+    name = "rabbitmq_amqp1_0",
+    actual = ":erlang_app",
+    visibility = ["//visibility:public"],
 )

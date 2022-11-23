@@ -9,6 +9,12 @@ load(
     "rabbitmq_integration_suite",
     "rabbitmq_suite",
 )
+load(
+    ":app.bzl",
+    "all_beam_files",
+    "all_srcs",
+    "all_test_beam_files",
+)
 
 APP_ENV = """[
 	    {prefer_ipv6, false},
@@ -44,7 +50,14 @@ DEPS = [
     "//deps/rabbit_common:erlang_app",
 ]
 
+all_beam_files()
+
+all_test_beam_files()
+
+all_srcs()
+
 rabbitmq_app(
+    all_srcs = [":all_srcs"],
     app_description = "RabbitMQ AMQP Client",
     app_env = APP_ENV,
     app_extra_keys = APP_EXTRA_KEYS,
@@ -107,4 +120,10 @@ suites = [
 assert_suites(
     suites,
     glob(["test/**/*_SUITE.erl"]),
+)
+
+alias(
+    name = "amqp_client",
+    actual = ":erlang_app",
+    visibility = ["//visibility:public"],
 )

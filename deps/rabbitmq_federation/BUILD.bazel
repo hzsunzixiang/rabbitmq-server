@@ -11,6 +11,12 @@ load(
     "rabbitmq_suite",
     "rabbitmq_test_helper",
 )
+load(
+    ":app.bzl",
+    "all_beam_files",
+    "all_srcs",
+    "all_test_beam_files",
+)
 
 APP_NAME = "rabbitmq_federation"
 
@@ -33,13 +39,18 @@ DEPS = [
     "//deps/rabbit:erlang_app",
 ]
 
+all_beam_files()
+
+all_test_beam_files()
+
+all_srcs()
+
 rabbitmq_app(
     app_description = APP_DESCRIPTION,
     app_env = APP_ENV,
     app_extra_keys = BROKER_VERSION_REQUIREMENTS_ANY,
     app_module = APP_MODULE,
     app_name = APP_NAME,
-    build_deps = BUILD_DEPS,
     deps = DEPS,
 )
 
@@ -137,4 +148,10 @@ suites = [
 assert_suites(
     suites,
     glob(["test/**/*_SUITE.erl"]),
+)
+
+alias(
+    name = "rabbitmq_federation",
+    actual = ":erlang_app",
+    visibility = ["//visibility:public"],
 )

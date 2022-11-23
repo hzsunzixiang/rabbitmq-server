@@ -9,6 +9,12 @@ load(
     "rabbitmq_app",
     "rabbitmq_integration_suite",
 )
+load(
+    ":app.bzl",
+    "all_beam_files",
+    "all_srcs",
+    "all_test_beam_files",
+)
 
 APP_NAME = "rabbitmq_sharding"
 
@@ -18,6 +24,12 @@ DEPS = [
     "//deps/rabbit:erlang_app",
     "//deps/rabbit_common:erlang_app",
 ]
+
+all_beam_files()
+
+all_test_beam_files()
+
+all_srcs()
 
 rabbitmq_app(
     app_description = APP_DESCRIPTION,
@@ -60,4 +72,10 @@ suites = [
 assert_suites(
     suites,
     glob(["test/**/*_SUITE.erl"]),
+)
+
+alias(
+    name = "rabbitmq_sharding",
+    actual = ":erlang_app",
+    visibility = ["//visibility:public"],
 )

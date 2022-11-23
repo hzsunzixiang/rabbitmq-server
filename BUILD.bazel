@@ -50,6 +50,33 @@ string_flag(
 # gazelle:erlang_skip_rules test_erlang_app
 # gazelle:erlang_generate_beam_files_macro
 # gazelle:map_kind erlang_app rabbitmq_app //rabbitmq.bzl
+
+# gazelle:erlang_behaviour_source_lib gen_server2:rabbit_common
+# gazelle:erlang_behaviour_source_lib rabbit_registry_class:rabbit_common
+# gazelle:erlang_behaviour_source_lib rabbit_password_hashing:rabbit_common
+# gazelle:erlang_behaviour_source_lib rabbit_peer_discovery_backend:rabbit_common
+# gazelle:erlang_behaviour_source_lib supervisor2:rabbit_common
+
+# gazelle:erlang_behaviour_source_lib mirrored_supervisor:rabbit
+# gazelle:erlang_behaviour_source_lib rabbit_channel_interceptor:rabbit
+# gazelle:erlang_behaviour_source_lib rabbit_exchange_decorator:rabbit
+
+# gazelle:erlang_behaviour_source_lib Elixir.RabbitMQ.CLI.CommandBehaviour:rabbitmq_cli
+
+# gazelle:erlang_behaviour_source_lib rabbit_mgmt_extension:rabbitmq_management
+
+# gazelle:erlang_behaviour_source_lib cowboy_handler:cowboy
+# gazelle:erlang_behaviour_source_lib cowboy_middleware:cowboy
+# gazelle:erlang_behaviour_source_lib cowboy_stream:cowboy
+# gazelle:erlang_behaviour_source_lib cowboy_sub_protocol:cowboy
+# gazelle:erlang_behaviour_source_lib cowboy_websocket:cowboy
+
+# gazelle:erlang_behaviour_source_lib prometheus_collector:prometheus
+
+# gazelle:erlang_behaviour_source_lib ra_machine:ra
+
+# gazelle:erlang_behaviour_source_lib ranch_protocol:ranch
+
 gazelle(
     name = "gazelle",
     data = GAZELLE_ERLANG_RUNTIME_DEPS,
@@ -308,6 +335,12 @@ erlc_opts(
     values = select({
         "@rules_erlang//:debug_build": without("+deterministic", RABBITMQ_ERLC_OPTS),
         "//conditions:default": RABBITMQ_ERLC_OPTS,
+    }) + select({
+        ":test_build": [
+            "-DTEST=1",
+            "+nowarn_export_all",
+        ],
+        "//conditions:default": [],
     }),
     visibility = [":__subpackages__"],
 )

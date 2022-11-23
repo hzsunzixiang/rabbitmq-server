@@ -12,6 +12,12 @@ load(
     "rabbitmq_suite",
     "rabbitmq_test_helper",
 )
+load(
+    ":app.bzl",
+    "all_beam_files",
+    "all_srcs",
+    "all_test_beam_files",
+)
 
 APP_NAME = "rabbitmq_management"
 
@@ -62,6 +68,12 @@ sed 's/%%VSN%%/{}/' $< > $@
 """.format(APP_VERSION),
 )
 
+all_beam_files()
+
+all_test_beam_files()
+
+all_srcs()
+
 rabbitmq_app(
     app_description = APP_DESCRIPTION,
     app_env = APP_ENV,
@@ -70,8 +82,7 @@ rabbitmq_app(
     app_name = APP_NAME,
     extra_apps = EXTRA_APPS,
     extra_priv = [":rabbitmqadmin"],
-    runtime_deps = RUNTIME_DEPS,
-    deps = DEPS,
+    deps = DEPS + RUNTIME_DEPS,
 )
 
 xref()
@@ -200,4 +211,10 @@ suites = [
 assert_suites(
     suites,
     glob(["test/**/*_SUITE.erl"]),
+)
+
+alias(
+    name = "rabbitmq_management",
+    actual = ":erlang_app",
+    visibility = ["//visibility:public"],
 )

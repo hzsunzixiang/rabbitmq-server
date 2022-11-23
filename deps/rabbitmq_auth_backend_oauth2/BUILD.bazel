@@ -11,6 +11,12 @@ load(
     "rabbitmq_test_helper",
     "without",
 )
+load(
+    ":app.bzl",
+    "all_beam_files",
+    "all_srcs",
+    "all_test_beam_files",
+)
 
 APP_NAME = "rabbitmq_auth_backend_oauth2"
 
@@ -31,12 +37,16 @@ RUNTIME_DEPS = [
     "@cowlib//:erlang_app",
 ]
 
+all_beam_files()
+
+all_test_beam_files()
+
+all_srcs()
+
 rabbitmq_app(
     app_description = APP_DESCRIPTION,
     app_name = APP_NAME,
-    build_deps = BUILD_DEPS,
-    runtime_deps = RUNTIME_DEPS,
-    deps = DEPS,
+    deps = DEPS + RUNTIME_DEPS,
 )
 
 xref(
@@ -127,4 +137,10 @@ suites = [
 assert_suites(
     suites,
     glob(["test/**/*_SUITE.erl"]),
+)
+
+alias(
+    name = "rabbitmq_auth_backend_oauth2",
+    actual = ":erlang_app",
+    visibility = ["//visibility:public"],
 )
