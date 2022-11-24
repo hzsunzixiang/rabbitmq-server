@@ -1,4 +1,5 @@
 load("@rules_erlang//:erlang_app.bzl", "erlang_app")
+load("@rules_erlang//:ct.bzl", "assert_suites2")
 load(
     ":app.bzl",
     "all_beam_files",
@@ -30,3 +31,5 @@ alias(
     actual = ":erlang_app",
     visibility = ["//visibility:public"],
 )
+
+assert_suites2()

@@ -4,6 +4,7 @@ load(
     "//:rabbitmq.bzl",
     "BROKER_VERSION_REQUIREMENTS_ANY",
     "RABBITMQ_DIALYZER_OPTS",
+    "assert_suites",
     "rabbitmq_app",
 )
 load(
@@ -64,3 +65,5 @@ alias(
     actual = ":erlang_app",
     visibility = ["//visibility:public"],
 )
+
+assert_suites()
