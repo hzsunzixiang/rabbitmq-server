@@ -58,17 +58,12 @@ broker_for_integration_suites()
 
 PACKAGE = "deps/rabbitmq_recent_history_exchange"
 
-suites = [
-    rabbitmq_integration_suite(
-        PACKAGE,
-        name = "system_SUITE",
-    ),
-]
-
-assert_suites(
-    suites,
-    glob(["test/**/*_SUITE.erl"]),
+rabbitmq_integration_suite(
+    PACKAGE,
+    name = "system_SUITE",
 )
+
+assert_suites()
 
 alias(
     name = "rabbitmq_recent_history_exchange",

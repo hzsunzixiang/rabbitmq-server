@@ -92,19 +92,15 @@ dialyze(
     plt = "//:base_plt",
 )
 
-suites = [
-    rabbitmq_suite(
-        name = "binary_generator_SUITE",
-    ),
-    rabbitmq_suite(
-        name = "binary_parser_SUITE",
-    ),
-]
-
-assert_suites(
-    suites,
-    glob(["test/**/*_SUITE.erl"]),
+rabbitmq_suite(
+    name = "binary_generator_SUITE",
 )
+
+rabbitmq_suite(
+    name = "binary_parser_SUITE",
+)
+
+assert_suites()
 
 alias(
     name = "amqp10_common",

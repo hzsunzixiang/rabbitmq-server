@@ -91,40 +91,38 @@ broker_for_integration_suites()
 
 PACKAGE = "deps/rabbitmq_management_agent"
 
-suites = [
-    rabbitmq_suite(
-        name = "exometer_slide_SUITE",
-        size = "medium",
-        deps = [
-            "@proper//:erlang_app",
-        ],
-    ),
-    rabbitmq_integration_suite(
-        PACKAGE,
-        name = "metrics_SUITE",
-        size = "medium",
-    ),
-    rabbitmq_integration_suite(
-        PACKAGE,
-        name = "rabbit_mgmt_gc_SUITE",
-        size = "medium",
-    ),
-    rabbitmq_suite(
-        name = "rabbit_mgmt_slide_SUITE",
-        size = "small",
-        runtime_deps = [
-            "//deps/rabbitmq_ct_helpers:erlang_app",
-        ],
-        deps = [
-            "@proper//:erlang_app",
-        ],
-    ),
-]
-
-assert_suites(
-    suites,
-    glob(["test/**/*_SUITE.erl"]),
+rabbitmq_suite(
+    name = "exometer_slide_SUITE",
+    size = "medium",
+    deps = [
+        "@proper//:erlang_app",
+    ],
 )
+
+rabbitmq_integration_suite(
+    PACKAGE,
+    name = "metrics_SUITE",
+    size = "medium",
+)
+
+rabbitmq_integration_suite(
+    PACKAGE,
+    name = "rabbit_mgmt_gc_SUITE",
+    size = "medium",
+)
+
+rabbitmq_suite(
+    name = "rabbit_mgmt_slide_SUITE",
+    size = "small",
+    runtime_deps = [
+        "//deps/rabbitmq_ct_helpers:erlang_app",
+    ],
+    deps = [
+        "@proper//:erlang_app",
+    ],
+)
+
+assert_suites()
 
 alias(
     name = "rabbitmq_management_agent",
