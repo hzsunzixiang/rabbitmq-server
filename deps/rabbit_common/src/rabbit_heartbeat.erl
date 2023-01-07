@@ -2,7 +2,7 @@
 %% License, v. 2.0. If a copy of the MPL was not distributed with this
 %% file, You can obtain one at https://mozilla.org/MPL/2.0/.
 %%
-%% Copyright (c) 2007-2023 VMware, Inc. or its affiliates.  All rights reserved.
+%% Copyright (c) 2007-2022 VMware, Inc. or its affiliates.  All rights reserved.
 %%
 
 -module(rabbit_heartbeat).
@@ -105,7 +105,7 @@ start_heartbeater(0, _SupPid, _Sock, _TimeoutFun, _Name, _Callback,
     {ok, none};
 start_heartbeater(TimeoutSec, SupPid, Sock, TimeoutFun, Name, Callback,
                   Identity) ->
-    supervisor:start_child(
+    supervisor2:start_child(
       SupPid, {Name,
                {rabbit_heartbeat, Callback,
                 [Sock, TimeoutSec, TimeoutFun, {Name, Identity}]},

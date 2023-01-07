@@ -2,7 +2,7 @@
 %% License, v. 2.0. If a copy of the MPL was not distributed with this
 %% file, You can obtain one at https://mozilla.org/MPL/2.0/.
 %%
-%% Copyright (c) 2007-2023 VMware, Inc. or its affiliates.  All rights reserved.
+%% Copyright (c) 2007-2022 VMware, Inc. or its affiliates.  All rights reserved.
 %%
 
 -module(rabbit_core_metrics).
@@ -407,7 +407,7 @@ auth_attempt_failed(RemoteAddress, Username, Protocol) ->
 update_auth_attempt(RemoteAddress, Username, Protocol, Incr) ->
     %% It should default to false as per ip/user metrics could keep growing indefinitely
     %% It's up to the operator to enable them, and reset it required
-    _ = case application:get_env(rabbit, track_auth_attempt_source) of
+    case application:get_env(rabbit, track_auth_attempt_source) of
         {ok, true} ->
             case {RemoteAddress, Username} of
                 {<<>>, <<>>} ->

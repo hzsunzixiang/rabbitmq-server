@@ -2,7 +2,7 @@
 %% License, v. 2.0. If a copy of the MPL was not distributed with this
 %% file, You can obtain one at https://mozilla.org/MPL/2.0/.
 %%
-%% Copyright (c) 2007-2023 VMware, Inc. or its affiliates.  All rights reserved.
+%% Copyright (c) 2007-2022 VMware, Inc. or its affiliates.  All rights reserved.
 %%
 
 -module(rabbit_writer).
@@ -361,7 +361,7 @@ internal_send_command_async(MethodRecord, Content,
                                             writer_gc_threshold = GCThreshold}) ->
     Frames = assemble_frames(Channel, MethodRecord, Content, FrameMax,
                              Protocol),
-    _ = maybe_gc_large_msg(Content, GCThreshold),
+    maybe_gc_large_msg(Content, GCThreshold),
     maybe_flush(State#wstate{pending = [Frames | Pending]}).
 
 %% When the amount of protocol method data buffered exceeds

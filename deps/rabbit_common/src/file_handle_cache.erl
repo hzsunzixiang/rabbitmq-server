@@ -2,7 +2,7 @@
 %% License, v. 2.0. If a copy of the MPL was not distributed with this
 %% file, You can obtain one at https://mozilla.org/MPL/2.0/.
 %%
-%% Copyright (c) 2007-2023 VMware, Inc. or its affiliates.  All rights reserved.
+%% Copyright (c) 2007-2022 VMware, Inc. or its affiliates.  All rights reserved.
 %%
 
 -module(file_handle_cache).
@@ -1082,7 +1082,7 @@ init([AlarmSet, AlarmClear]) ->
                     end
             end,
     ObtainLimit = obtain_limit(Limit),
-    logger:info("Limiting to approx ~tp file handles (~tp sockets)",
+    logger:info("Limiting to approx ~p file handles (~p sockets)",
                  [Limit, ObtainLimit]),
     Clients = ets:new(?CLIENT_ETS_TABLE, [set, private, {keypos, #cstate.pid}]),
     Elders = ets:new(?ELDERS_ETS_TABLE, [set, private]),

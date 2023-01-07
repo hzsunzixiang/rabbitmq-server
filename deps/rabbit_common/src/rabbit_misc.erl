@@ -2,7 +2,7 @@
 %% License, v. 2.0. If a copy of the MPL was not distributed with this
 %% file, You can obtain one at https://mozilla.org/MPL/2.0/.
 %%
-%% Copyright (c) 2007-2023 VMware, Inc. or its affiliates.  All rights reserved.
+%% Copyright (c) 2007-2022 VMware, Inc. or its affiliates.  All rights reserved.
 %%
 
 -module(rabbit_misc).
@@ -62,8 +62,9 @@
 -export([pget/2, pget/3, pupdate/3, pget_or_die/2, pmerge/3, pset/3, plmerge/2]).
 -export([format_message_queue/2]).
 -export([append_rpc_all_nodes/4, append_rpc_all_nodes/5]).
--export([os_cmd/1, pwsh_cmd/1, win32_cmd/2]).
+-export([os_cmd/1]).
 -export([is_os_process_alive/1]).
+-export([gb_sets_difference/2]).
 -export([version/0, otp_release/0, platform_and_version/0, otp_system_version/0,
          rabbitmq_and_erlang_versions/0, which_applications/0]).
 -export([sequence_error/1]).
@@ -82,7 +83,6 @@
 -export([get_gc_info/1]).
 -export([group_proplists_by/2]).
 -export([raw_read_file/1]).
--export([find_child/2]).
 -export([is_regular_file/1]).
 
 %% Horrible macro to use in guards
@@ -232,6 +232,7 @@
 -spec format_message_queue(any(), priority_queue:q()) -> term().
 -spec os_cmd(string()) -> string().
 -spec is_os_process_alive(non_neg_integer()) -> boolean().
+-spec gb_sets_difference(gb_sets:set(), gb_sets:set()) -> gb_sets:set().
 -spec version() -> string().
 -spec otp_release() -> string().
 -spec otp_system_version() -> string().
@@ -342,22 +343,22 @@ assert_field_equivalence(Orig, New, Name, Key) ->
     equivalence_fail(Orig, New, Name, Key).
 
 equivalence_fail(Orig, New, Name, Key) ->
-    protocol_error(precondition_failed, "inequivalent arg '~ts' "
-                   "for ~ts: received ~ts but current is ~ts",
+    protocol_error(precondition_failed, "inequivalent arg '~s' "
+                   "for ~s: received ~s but current is ~s",
                    [Key, rs(Name), val(New), val(Orig)]).
 
 val(undefined) ->
     "none";
 val({Type, Value}) ->
     ValFmt = case is_binary(Value) of
-                 true  -> "~ts";
-                 false -> "~tp"
+                 true  -> "~s";
+                 false -> "~p"
              end,
-    format("the value '" ++ ValFmt ++ "' of type '~ts'", [Value, Type]);
+    format("the value '" ++ ValFmt ++ "' of type '~s'", [Value, Type]);
 val(Value) ->
     format(case is_binary(Value) of
-               true  -> "'~ts'";
-               false -> "'~tp'"
+               true  -> "'~s'";
+               false -> "'~p'"
            end, [Value]).
 
 %% Normally we'd call mnesia:dirty_read/1 here, but that is quite
@@ -421,7 +422,7 @@ amqp_value(array, Vs)                  -> [amqp_value(T, V) || {T, V} <- Vs];
 amqp_value(table, V)                   -> amqp_table(V);
 amqp_value(decimal, {Before, After})   ->
     erlang:list_to_float(
-      lists:flatten(io_lib:format("~tp.~tp", [Before, After])));
+      lists:flatten(io_lib:format("~p.~p", [Before, After])));
 amqp_value(_Type, V) when is_binary(V) -> utf8_safe(V);
 amqp_value(_Type, V)                   -> V.
 
@@ -448,9 +449,9 @@ r_arg(VHostPath, Kind, Table, Key) ->
     end.
 
 rs(#resource{virtual_host = VHostPath, kind = topic, name = Name}) ->
-    format("'~ts' in vhost '~ts'", [Name, VHostPath]);
+    format("'~s' in vhost '~s'", [Name, VHostPath]);
 rs(#resource{virtual_host = VHostPath, kind = Kind, name = Name}) ->
-    format("~ts '~ts' in vhost '~ts'", [Kind, Name, VHostPath]).
+    format("~s '~s' in vhost '~s'", [Kind, Name, VHostPath]).
 
 enable_cover() -> enable_cover(["."]).
 
@@ -498,7 +499,7 @@ report_cover1(Root) ->
     ok.
 
 report_coverage_percentage(File, Cov, NotCov, Mod) ->
-    io:fwrite(File, "~6.2f ~tp~n",
+    io:fwrite(File, "~6.2f ~p~n",
               [if
                    Cov+NotCov > 0 -> 100.0*Cov/(Cov+NotCov);
                    true -> 100.0
@@ -610,9 +611,9 @@ ensure_ok({error, Reason}, ErrorTag) -> throw({error, {ErrorTag, Reason}}).
 tcp_name(Prefix, IPAddress, Port)
   when is_atom(Prefix) andalso is_number(Port) ->
     list_to_atom(
-      format("~w_~ts:~w", [Prefix, inet_parse:ntoa(IPAddress), Port])).
+      format("~w_~s:~w", [Prefix, inet_parse:ntoa(IPAddress), Port])).
 
-format_inet_error(E) -> format("~w (~ts)", [E, format_inet_error0(E)]).
+format_inet_error(E) -> format("~w (~s)", [E, format_inet_error0(E)]).
 
 format_inet_error0(address) -> "cannot connect to host/port";
 format_inet_error0(timeout) -> "timed out";
@@ -704,10 +705,10 @@ dirty_dump_log(FileName) ->
 dirty_dump_log1(_LH, eof) ->
     io:format("Done.~n");
 dirty_dump_log1(LH, {K, Terms}) ->
-    io:format("Chunk: ~tp~n", [Terms]),
+    io:format("Chunk: ~p~n", [Terms]),
     dirty_dump_log1(LH, disk_log:chunk(LH, K));
 dirty_dump_log1(LH, {K, Terms, BadBytes}) ->
-    io:format("Bad Chunk, ~tp: ~tp~n", [BadBytes, Terms]),
+    io:format("Bad Chunk, ~p: ~p~n", [BadBytes, Terms]),
     dirty_dump_log1(LH, disk_log:chunk(LH, K)).
 
 format(Fmt, Args) -> lists:flatten(io_lib:format(Fmt, Args)).
@@ -772,13 +773,13 @@ sort_field_table(Arguments) ->
 %% permits easy identification of the pid's node.
 pid_to_string(Pid) when is_pid(Pid) ->
     {Node, Cre, Id, Ser} = decompose_pid(Pid),
-    format("<~ts.~B.~B.~B>", [Node, Cre, Id, Ser]).
+    format("<~s.~B.~B.~B>", [Node, Cre, Id, Ser]).
 
 -spec hexify(binary() | atom() | list()) -> binary().
 hexify(Bin) when is_binary(Bin) ->
     iolist_to_binary([io_lib:format("~2.16.0B", [V]) || <<V:8>> <= Bin]);
 hexify(Bin) when is_list(Bin) ->
-    hexify(erlang:list_to_binary(Bin));
+    hexify(erlang:binary_to_list(Bin));
 hexify(Bin) when is_atom(Bin) ->
     hexify(erlang:atom_to_binary(Bin)).
 
@@ -928,7 +929,7 @@ module_attributes(Module) ->
         Module:module_info(attributes)
     catch
         _:undef ->
-            io:format("WARNING: module ~tp not found, so not scanned for boot steps.~n",
+            io:format("WARNING: module ~p not found, so not scanned for boot steps.~n",
                       [Module]),
             []
     end.
@@ -1156,14 +1157,6 @@ os_cmd(Command) ->
             end
     end.
 
-pwsh_cmd(Command) ->
-    case os:type() of
-        {win32, _} ->
-            do_pwsh_cmd(Command);
-        _ ->
-            {error, invalid_os_type}
-    end.
-
 is_os_process_alive(Pid) ->
     with_os([{unix, fun () ->
                             run_ps(Pid) =:= 0
@@ -1172,17 +1165,26 @@ is_os_process_alive(Pid) ->
                              PidS = rabbit_data_coercion:to_list(Pid),
                              case os:find_executable("tasklist.exe") of
                                  false ->
-                                     Cmd = format("(Get-Process -Id ~ts).ProcessName", [PidS]),
-                                     {ok, [Res]} = pwsh_cmd(Cmd),
+                                     Cmd =
+                                     format(
+                                       "powershell.exe -NoLogo -NoProfile -NonInteractive -Command "
+                                       "\"(Get-Process -Id ~s).ProcessName\"",
+                                       [PidS]),
+                                     Res =
+                                     os_cmd(Cmd ++ " 2>&1") -- [$\r, $\n],
                                      case Res of
                                          "erl"  -> true;
                                          "werl" -> true;
                                          _      -> false
                                      end;
-                                 TasklistExe ->
-                                     Args = ["/nh", "/fi", "pid eq " ++ PidS],
-                                     {ok, [Res]} = win32_cmd(TasklistExe, Args),
-                                     match =:= re:run(Res, "erl\\.exe", [{capture, none}])
+                                 _ ->
+                                     Cmd =
+                                     "tasklist /nh /fi "
+                                     "\"pid eq " ++ PidS ++ "\"",
+                                     Res = os_cmd(Cmd ++ " 2>&1"),
+                                     match =:= re:run(Res,
+                                                      "erl\\.exe",
+                                                      [{capture, none}])
                              end
                      end}]).
 
@@ -1205,6 +1207,9 @@ exit_loop(Port) ->
         {Port, {exit_status, Rc}} -> Rc;
         {Port, _}                 -> exit_loop(Port)
     end.
+
+gb_sets_difference(S1, S2) ->
+    gb_sets:fold(fun gb_sets:delete_any/2, S1, S2).
 
 version() ->
     {ok, VSN} = application:get_key(rabbit, vsn),
@@ -1430,14 +1435,6 @@ is_regular_file(Name) ->
         _ -> false
     end.
 
-%% this used to be in supervisor2
--spec find_child(Supervisor, Name) -> [pid()] when
-      Supervisor :: supervisor:sup_ref(),
-      Name :: supervisor:child_id().
-find_child(Supervisor, Name) ->
-    [Pid || {Name1, Pid, _Type, _Modules} <- supervisor:which_children(Supervisor),
-            Name1 =:= Name].
-
 %% -------------------------------------------------------------------------
 %% Begin copypasta from gen_server2.erl
 
@@ -1471,84 +1468,3 @@ whereis_name(Name) ->
 
 %% End copypasta from gen_server2.erl
 %% -------------------------------------------------------------------------
-
-%% This will execute a Powershell command without an intervening cmd.exe
-%% process. Output lines can't exceed 512 bytes.
-%%
-%% Inspired by os:cmd/1 in lib/kernel/src/os.erl
-do_pwsh_cmd(Command) ->
-    Pwsh = find_powershell(),
-    Args = ["-NoLogo",
-            "-NonInteractive",
-            "-NoProfile",
-            "-InputFormat", "Text",
-            "-OutputFormat", "Text",
-            "-Command", Command],
-    win32_cmd(Pwsh, Args).
-
-win32_cmd(Exe, Args) ->
-    SystemRootDir = os:getenv("SystemRoot", "/"),
-    % Note: 'hide' must be used or this will not work!
-    A0 = [exit_status, stderr_to_stdout, in, hide,
-          {cd, SystemRootDir}, {line, 512}, {arg0, Exe}, {args, Args}],
-    Port = erlang:open_port({spawn_executable, Exe}, A0),
-    MonRef = erlang:monitor(port, Port),
-    Result = win32_cmd_receive(Port, MonRef, []),
-    true = erlang:demonitor(MonRef, [flush]),
-    Result.
-
-win32_cmd_receive(Port, MonRef, Acc0) ->
-    receive
-        {Port, {exit_status, 0}} ->
-            win32_cmd_receive_finish(Port, MonRef),
-            {ok, lists:reverse(Acc0)};
-        {Port, {exit_status, Status}} ->
-            win32_cmd_receive_finish(Port, MonRef),
-            {error, {exit_status, Status}};
-        {Port, {data, {eol, Data0}}} ->
-            Data1 = string:trim(Data0),
-            Acc1 = case Data1 of
-                       [] -> Acc0; % Note: skip empty lines in output
-                       Data2 -> [Data2 | Acc0]
-                   end,
-            win32_cmd_receive(Port, MonRef, Acc1);
-        {'DOWN', MonRef, _, _, _} ->
-            flush_exit(Port),
-            {error, nodata}
-    after 5000 ->
-              {error, timeout}
-    end.
-
-win32_cmd_receive_finish(Port, MonRef) ->
-    catch erlang:port_close(Port),
-    flush_until_down(Port, MonRef).
-
-flush_until_down(Port, MonRef) ->
-    receive
-        {Port, {data, _Bytes}} ->
-            flush_until_down(Port, MonRef);
-        {'DOWN', MonRef, _, _, _} ->
-            flush_exit(Port)
-    after 500 ->
-              flush_exit(Port)
-    end.
-
-flush_exit(Port) ->
-    receive
-        {'EXIT', Port, _} -> ok
-    after 0 ->
-              ok
-    end.
-
-find_powershell() ->
-    case os:find_executable("pwsh.exe") of
-        false ->
-            case os:find_executable("powershell.exe") of
-                false ->
-                    "powershell.exe";
-                PowershellExe ->
-                    PowershellExe
-            end;
-        PwshExe ->
-            PwshExe
-    end.
