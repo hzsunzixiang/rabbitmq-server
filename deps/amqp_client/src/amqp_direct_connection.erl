@@ -2,7 +2,7 @@
 %% License, v. 2.0. If a copy of the MPL was not distributed with this
 %% file, You can obtain one at https://mozilla.org/MPL/2.0/.
 %%
-%% Copyright (c) 2007-2023 VMware, Inc. or its affiliates.  All rights reserved.
+%% Copyright (c) 2007-2022 VMware, Inc. or its affiliates.  All rights reserved.
 %%
 
 %% @private
@@ -71,7 +71,7 @@ handle_message({'DOWN', _MRef, process, _ConnSup, shutdown}, State) ->
 handle_message({'DOWN', _MRef, process, _ConnSup, Reason}, State) ->
     {stop, {remote_node_down, Reason}, State};
 handle_message({'EXIT', Pid, Reason}, State) ->
-    {stop, rabbit_misc:format("stopping because dependent process ~tp died: ~tp", [Pid, Reason]), State};
+    {stop, rabbit_misc:format("stopping because dependent process ~p died: ~p", [Pid, Reason]), State};
 handle_message(Msg, State) ->
     {stop, {unexpected_msg, Msg}, State}.
 

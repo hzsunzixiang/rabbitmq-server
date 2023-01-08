@@ -2,7 +2,7 @@
 %% License, v. 2.0. If a copy of the MPL was not distributed with this
 %% file, You can obtain one at https://mozilla.org/MPL/2.0/.
 %%
-%% Copyright (c) 2007-2023 VMware, Inc. or its affiliates.  All rights reserved.
+%% Copyright (c) 2007-2022 VMware, Inc. or its affiliates.  All rights reserved.
 %%
 
 %% @type close_reason(Type) = {shutdown, amqp_reason(Type)}.
@@ -414,8 +414,8 @@ maybe_update_call_timeout(BaseTimeout, CallTimeout)
     ok;
 maybe_update_call_timeout(BaseTimeout, CallTimeout) ->
     EffectiveSafeCallTimeout = amqp_util:safe_call_timeout(BaseTimeout),
-    ?LOG_WARN("AMQP 0-9-1 client call timeout was ~tp ms, is updated to a safe effective "
-              "value of ~tp ms", [CallTimeout, EffectiveSafeCallTimeout]),
+    ?LOG_WARN("AMQP 0-9-1 client call timeout was ~p ms, is updated to a safe effective "
+              "value of ~p ms", [CallTimeout, EffectiveSafeCallTimeout]),
     amqp_util:update_call_timeout(EffectiveSafeCallTimeout),
     ok.
 

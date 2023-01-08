@@ -2,7 +2,7 @@
 %% License, v. 2.0. If a copy of the MPL was not distributed with this
 %% file, You can obtain one at https://mozilla.org/MPL/2.0/.
 %%
-%% Copyright (c) 2007-2023 VMware, Inc. or its affiliates.  All rights reserved.
+%% Copyright (c) 2007-2022 VMware, Inc. or its affiliates.  All rights reserved.
 %%
 
 %% @private
@@ -10,7 +10,7 @@
 
 -include("amqp_client_internal.hrl").
 
--behaviour(supervisor).
+-behaviour(supervisor2).
 
 -export([start_link/6]).
 -export([init/1]).
@@ -22,17 +22,13 @@
 start_link(Type, Connection, ConnName, InfraArgs, ChNumber,
            Consumer = {_, _}) ->
     Identity = {ConnName, ChNumber},
-    {ok, Sup} = supervisor:start_link(?MODULE, [Consumer, Identity]),
-    [{gen_consumer, ConsumerPid, _, _}] = supervisor:which_children(Sup),
-    StartMFA = {amqp_channel, start_link, [Type, Connection, ChNumber, ConsumerPid, Identity]},
-    ChildSpec = #{id => channel,
-                  start => StartMFA,
-                  restart => transient,
-                  significant => true,
-                  shutdown => ?WORKER_WAIT,
-                  type => worker,
-                  modules => [amqp_channel]},
-    {ok, ChPid} = supervisor:start_child(Sup, ChildSpec),
+    {ok, Sup} = supervisor2:start_link(?MODULE, [Consumer, Identity]),
+    [{gen_consumer, ConsumerPid, _, _}] = supervisor2:which_children(Sup),
+    {ok, ChPid} = supervisor2:start_child(
+                    Sup, {channel,
+                          {amqp_channel, start_link,
+                           [Type, Connection, ChNumber, ConsumerPid, Identity]},
+                          intrinsic, ?WORKER_WAIT, worker, [amqp_channel]}),
     case start_writer(Sup, Type, InfraArgs, ConnName, ChNumber, ChPid) of
         {ok, Writer} ->
             amqp_channel:set_writer(ChPid, Writer),
@@ -63,35 +59,22 @@ start_writer(_Sup, direct, [ConnPid, Node, User, VHost, Collector, AmqpParams],
     end;
 start_writer(Sup, network, [Sock, FrameMax], ConnName, ChNumber, ChPid) ->
     GCThreshold = application:get_env(amqp_client, writer_gc_threshold, ?DEFAULT_GC_THRESHOLD),
-    StartMFA = {rabbit_writer, start_link,
+    supervisor2:start_child(
+      Sup,
+      {writer, {rabbit_writer, start_link,
                 [Sock, ChNumber, FrameMax, ?PROTOCOL, ChPid,
                  {ConnName, ChNumber}, false, GCThreshold]},
-    ChildSpec = #{id => writer,
-                  start => StartMFA,
-                  restart => transient,
-                  shutdown => ?WORKER_WAIT,
-                  type => worker,
-                  modules => [rabbit_writer]},
-    supervisor:start_child(Sup, ChildSpec).
+       transient, ?WORKER_WAIT, worker, [rabbit_writer]}).
 
 init_command_assembler(direct)  -> {ok, none};
 init_command_assembler(network) -> rabbit_command_assembler:init(?PROTOCOL).
 
 %%---------------------------------------------------------------------------
-%% supervisor callbacks
+%% supervisor2 callbacks
 %%---------------------------------------------------------------------------
 
 init([{ConsumerModule, ConsumerArgs}, Identity]) ->
-    SupFlags = #{strategy => one_for_all,
-                 intensity => 0,
-                 period => 1,
-                 auto_shutdown => any_significant},
-    ChildStartMFA = {amqp_gen_consumer, start_link, [ConsumerModule, ConsumerArgs, Identity]},
-    ChildSpec = #{id => gen_consumer,
-                  start => ChildStartMFA,
-                  restart => transient,
-                  significant => true,
-                  shutdown => ?WORKER_WAIT,
-                  type => worker,
-                  modules => [amqp_gen_consumer]},
-    {ok, {SupFlags, [ChildSpec]}}.
+    {ok, {{one_for_all, 0, 1},
+          [{gen_consumer, {amqp_gen_consumer, start_link,
+                           [ConsumerModule, ConsumerArgs, Identity]},
+           intrinsic, ?WORKER_WAIT, worker, [amqp_gen_consumer]}]}}.

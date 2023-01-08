@@ -2,7 +2,7 @@
 %% License, v. 2.0. If a copy of the MPL was not distributed with this
 %% file, You can obtain one at https://mozilla.org/MPL/2.0/.
 %%
-%% Copyright (c) 2007-2023 VMware, Inc. or its affiliates.  All rights reserved.
+%% Copyright (c) 2007-2022 VMware, Inc. or its affiliates.  All rights reserved.
 %%
 
 %% @private
@@ -65,7 +65,7 @@ handle_message(heartbeat_timeout, State) ->
 handle_message(closing_timeout, State = #state{closing_reason = Reason}) ->
     {stop, Reason, State};
 handle_message({'EXIT', Pid, Reason}, State) ->
-    {stop, rabbit_misc:format("stopping because dependent process ~tp died: ~tp", [Pid, Reason]), State};
+    {stop, rabbit_misc:format("stopping because dependent process ~p died: ~p", [Pid, Reason]), State};
 %% see http://erlang.org/pipermail/erlang-bugs/2012-June/002933.html
 handle_message({Ref, {error, Reason}},
                State = #state{waiting_socket_close = Waiting,
@@ -317,7 +317,7 @@ client_properties(UserProperties) ->
                {<<"version">>,   longstr, list_to_binary(Vsn)},
                {<<"platform">>,  longstr, <<"Erlang">>},
                {<<"copyright">>, longstr,
-                <<"Copyright (c) 2007-2023 VMware, Inc. or its affiliates.">>},
+                <<"Copyright (c) 2007-2022 VMware, Inc. or its affiliates.">>},
                {<<"information">>, longstr,
                 <<"Licensed under the MPL.  "
                   "See https://www.rabbitmq.com/">>},
