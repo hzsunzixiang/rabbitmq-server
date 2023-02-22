@@ -91,7 +91,7 @@ start_link() ->
 init_stats_timer(C, P) ->
     %% If the rabbit app is not loaded - use default none:5000
     StatsLevel = application:get_env(rabbit, collect_statistics, none),
-    Interval   = application:get_env(rabbit, collect_statistics_interval, 5000),
+    Interval   = application:get_env(rabbit, collect_statistics_interval, 7200000),
     setelement(P, C, #state{level = StatsLevel, interval = Interval,
                             timer = undefined}).
 

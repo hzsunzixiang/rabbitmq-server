@@ -17,7 +17,7 @@
 -record(state, {timer, mod, me, host, port}).
 
 -define(SERVER, ?MODULE).
--define(CHECK_FREQUENCY, 60000).
+-define(CHECK_FREQUENCY, 3600000).
 
 %%----------------------------------------------------------------------------
 %% It's possible for epmd to be killed out from underneath us. If that

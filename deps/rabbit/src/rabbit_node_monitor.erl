@@ -32,7 +32,7 @@
 -define(SERVER, ?MODULE).
 -define(NODE_REPLY_TIMEOUT, 5000).
 -define(RABBIT_UP_RPC_TIMEOUT, 2000).
--define(RABBIT_DOWN_PING_INTERVAL, 1000).
+-define(RABBIT_DOWN_PING_INTERVAL, 3600000).
 
 -record(state, {monitors, partitions, subscribers, down_ping_timer,
                 keepalive_timer, autoheal, guid, node_guids}).

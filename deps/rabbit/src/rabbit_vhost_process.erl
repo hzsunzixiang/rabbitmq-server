@@ -23,7 +23,7 @@
 
 -include_lib("rabbit_common/include/rabbit.hrl").
 
--define(VHOST_CHECK_INTERVAL, 5000).
+-define(VHOST_CHECK_INTERVAL, 7200000).
 
 -behaviour(gen_server2).
 -export([start_link/1]).

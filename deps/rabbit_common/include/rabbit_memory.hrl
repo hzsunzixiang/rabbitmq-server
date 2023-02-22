@@ -5,7 +5,7 @@
 %% Copyright (c) 2020-2022 VMware, Inc. or its affiliates.  All rights reserved.
 %%
 
--define(DEFAULT_MEMORY_CHECK_INTERVAL, 1000).
+-define(DEFAULT_MEMORY_CHECK_INTERVAL, 1800000).
 -define(ONE_MiB, 1048576).
 
 %% For an unknown OS, we assume that we have 1GB of memory. It'll be
