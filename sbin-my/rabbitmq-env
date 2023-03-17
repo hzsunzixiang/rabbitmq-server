@@ -1,23 +1,14 @@
 #!/bin/sh -e
 
-SCRIPT_PATH="$0"
-FULL_PATH=`readlink -f $SCRIPT_PATH 2>/dev/null`
-SCRIPT_PATH=$FULL_PATH
-RABBITMQ_SCRIPTS_DIR=`dirname $SCRIPT_PATH`
 
 RABBITMQ_HOME=/home/ericksun/program/rabbitmq-server
 
 ### next line potentially updated in package install steps
 SYS_PREFIX=
-CLEAN_BOOT_FILE=start_clean
 SASL_BOOT_FILE=start_sasl
 BOOT_MODULE="rabbit"
 CONF_ENV_FILE=/etc/rabbitmq/rabbitmq-env.conf
 
-# We save the current value of $RABBITMQ_PID_FILE in case it was set by
-# an init script. If $CONF_ENV_FILE overrides it again, we must ignore
-# it and warn the user.
-saved_RABBITMQ_PID_FILE="$RABBITMQ_PID_FILE"
 
 ## Get configuration variables from the configure environment file
 [ "x" = "x$RABBITMQ_CONF_ENV_FILE" ] && RABBITMQ_CONF_ENV_FILE="$CONF_ENV_FILE"
@@ -78,15 +69,6 @@ SERVER_ERL_ARGS=" +P $RABBITMQ_MAX_NUMBER_OF_PROCESSES +t $RABBITMQ_MAX_NUMBER_O
 [ "x" = "x$RABBITMQ_IGNORE_SIGINT" ] && RABBITMQ_IGNORE_SIGINT="true"
 [ "xtrue" = "x$RABBITMQ_IGNORE_SIGINT" ] && RABBITMQ_IGNORE_SIGINT_FLAG="+B i"
 
-if [ -n "$saved_RABBITMQ_PID_FILE" ] && \
-    [ "$saved_RABBITMQ_PID_FILE" != "$RABBITMQ_PID_FILE" ]
-then
-    _rmq_env_pwarn 'RABBITMQ_PID_FILE was already set by the init script to:' \
-        "$saved_RABBITMQ_PID_FILE" \
-        'The value set in rabbitmq-env.conf is ignored because it would break the init script.'
-
-    RABBITMQ_PID_FILE="$saved_RABBITMQ_PID_FILE"
-fi
 
 [ "x" = "x$RABBITMQ_BOOT_MODULE" ] && RABBITMQ_BOOT_MODULE=${BOOT_MODULE}
 
