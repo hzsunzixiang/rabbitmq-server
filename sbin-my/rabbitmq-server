@@ -5,7 +5,14 @@ set -e
 # Get default settings with user overrides for (RABBITMQ_)<var_name>
 # Non-empty defaults should be set in rabbitmq-env
 SCRIPTS_DIR=$(dirname "$0")
-. "$SCRIPTS_DIR/rabbitmq-env"
+
+RABBITMQ_HOME=/home/ericksun/program/rabbitmq-server
+SYS_PREFIX=
+SASL_BOOT_FILE=start_sasl
+RABBITMQ_BOOT_MODULE="rabbit"
+export ERL_MAX_ETS_TABLES=50000
+export ERL_MAX_PORTS=65536
+SERVER_ERL_ARGS=" +P 1048576 +t 5000000 +stbt db +zdbbl 128000 +sbwt none +sbwtdcpu none +sbwtdio none"
 
 [ "$NOTIFY_SOCKET" ] && RUNNING_UNDER_SYSTEMD=true
 
@@ -30,7 +37,7 @@ check_not_empty() {
 start_rabbitmq_server() {
     set -e
 
-    _rmq_env_set_erl_libs
+    export ERL_LIBS="$RABBITMQ_HOME/plugins"
 
     RABBITMQ_START_RABBIT=
     [ "x" = "x$RABBITMQ_ALLOW_INPUT" ] && RABBITMQ_START_RABBIT=" -noinput"
