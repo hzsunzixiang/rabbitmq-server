@@ -1,74 +1,13 @@
 #!/bin/sh -e
-##  This Source Code Form is subject to the terms of the Mozilla Public
-##  License, v. 2.0. If a copy of the MPL was not distributed with this
-##  file, You can obtain one at https://mozilla.org/MPL/2.0/.
-##
-##  Copyright (c) 2007-2020 VMware, Inc. or its affiliates.  All rights reserved.
-##
 
 if [ "$RABBITMQ_ENV_LOADED" = 1 ]; then
     return 0;
 fi
 
-if [ -z "$RABBITMQ_SCRIPTS_DIR" ]; then
-    # We set +e here since since our test for "readlink -f" below needs to
-    # be able to fail.
-    set +e
-    # Determine where this script is really located (if this script is
-    # invoked from another script, this is the location of the caller)
-    SCRIPT_PATH="$0"
-    while [ -h "$SCRIPT_PATH" ] ; do
-        # Determine if readlink -f is supported at all. TODO clean this up.
-        FULL_PATH=`readlink -f $SCRIPT_PATH 2>/dev/null`
-        if [ "$?" != "0" ]; then
-          REL_PATH=`readlink $SCRIPT_PATH`
-          if expr "$REL_PATH" : '/.*' > /dev/null; then
-            SCRIPT_PATH="$REL_PATH"
-          else
-            SCRIPT_PATH="`dirname "$SCRIPT_PATH"`/$REL_PATH"
-          fi
-        else
-          SCRIPT_PATH=$FULL_PATH
-        fi
-    done
-    set -e
-
-    RABBITMQ_SCRIPTS_DIR=`dirname $SCRIPT_PATH`
-fi
-
-_rmq_env_now()
-{
-    date '+%Y-%m-%d %H:%M:%S'
-}
-
-_rmq_env_print()
-{
-    _rmq_env_tmp="$1"
-    _rmq_env_tmp_len="${#_rmq_env_tmp}"
-    shift
-    printf '%s %s %s\n' "$(_rmq_env_now)" "$_rmq_env_tmp" "$1" 1>&2
-    shift
-    _rmq_env_print_line=''
-    _rmq_env_indent="$((_rmq_env_tmp_len + 21))"
-    for _rmq_env_print_line in "$@"
-    do
-        printf "%${_rmq_env_indent}s%s\n" ' ' "$_rmq_env_print_line" 1>&2
-    done
-    unset _rmq_env_print_line
-    unset _rmq_env_indent
-    unset _rmq_env_tmp_len
-    unset _rmq_env_tmp
-}
-
-_rmq_env_perr()
-{
-    _rmq_env_print '[error]' "$@"
-}
-
-_rmq_env_pwarn()
-{
-    _rmq_env_print '[warning]' "$@"
-}
+SCRIPT_PATH="$0"
+FULL_PATH=`readlink -f $SCRIPT_PATH 2>/dev/null`
+SCRIPT_PATH=$FULL_PATH
+RABBITMQ_SCRIPTS_DIR=`dirname $SCRIPT_PATH`
 
 rmq_realpath() {
     local path=$1
@@ -175,30 +114,6 @@ _rmq_env_set_erl_libs()
         export ERL_LIBS="$RABBITMQ_HOME/plugins"
     fi
 }
-
-run_escript()
-{
-    escript_main="${1:?escript_main must be defined}"
-    shift
-    escript="${1:?escript must be defined}"
-    shift
-
-    _rmq_env_set_erl_libs
-
-    # Important: do not quote RABBITMQ_CTL_ERL_ARGS as they must be
-    # word-split
-    # shellcheck disable=SC2086
-    exec erl +B \
-        -boot "$CLEAN_BOOT_FILE" \
-        -noinput -noshell -hidden -smp enable \
-        $RABBITMQ_CTL_ERL_ARGS \
-        -kernel inet_dist_listen_min "$RABBITMQ_CTL_DIST_PORT_MIN" \
-        -kernel inet_dist_listen_max "$RABBITMQ_CTL_DIST_PORT_MAX" \
-        -run escript start \
-        -escript main "$escript_main" \
-        -extra "$escript" "$@"
-}
-
 RABBITMQ_ENV_LOADED=1
 
 # Since we source this elsewhere, don't accidentally stop execution
