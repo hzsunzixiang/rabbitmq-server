@@ -1,31 +1,18 @@
 #!/bin/sh -e
 
-if [ "$RABBITMQ_ENV_LOADED" = 1 ]; then
-    return 0;
-fi
-
 SCRIPT_PATH="$0"
 FULL_PATH=`readlink -f $SCRIPT_PATH 2>/dev/null`
 SCRIPT_PATH=$FULL_PATH
 RABBITMQ_SCRIPTS_DIR=`dirname $SCRIPT_PATH`
 
-rmq_realpath() {
-    local path=$1
+RABBITMQ_HOME=/home/ericksun/program/rabbitmq-server
 
-    if [ -d "$path" ]; then
-        cd "$path" && pwd
-    elif [ -f "$path" ]; then
-        cd "$(dirname "$path")" && echo $(pwd)/$(basename "$path")
-    else
-        echo "$path"
-    fi
-}
-
-RABBITMQ_HOME="$(rmq_realpath "${RABBITMQ_SCRIPTS_DIR}/..")"
-ESCRIPT_DIR="${RABBITMQ_HOME}/escript"
-
-## Set defaults
-. ${RABBITMQ_SCRIPTS_DIR}/rabbitmq-defaults
+### next line potentially updated in package install steps
+SYS_PREFIX=
+CLEAN_BOOT_FILE=start_clean
+SASL_BOOT_FILE=start_sasl
+BOOT_MODULE="rabbit"
+CONF_ENV_FILE=/etc/rabbitmq/rabbitmq-env.conf
 
 # We save the current value of $RABBITMQ_PID_FILE in case it was set by
 # an init script. If $CONF_ENV_FILE overrides it again, we must ignore
