@@ -1,28 +1,6 @@
 #!/bin/sh
 
-SCRIPTS_DIR=$(dirname "$0")
-RABBITMQ_HOME=/home/ericksun/program/rabbitmq-server
-SASL_BOOT_FILE=start_sasl
-SERVER_ERL_ARGS=" +P 1048576 +t 5000000 +stbt db +zdbbl 128000 +sbwt none +sbwtdcpu none +sbwtdio none"
+export ERL_LIBS="/home/ericksun/program/rabbitmq-server/plugins"
 
-[ "$NOTIFY_SOCKET" ] && RUNNING_UNDER_SYSTEMD=true
+erl -pa  -noinput -s rabbit boot -boot start_sasl +W w +MBas ageffcbf +MHas ageffcbf +MBlmbcs 512 +MHlmbcs 512 +MMmcs 30 -syslog logger [] -syslog syslog_error_logger false -kernel prevent_overlapping_partitions false
 
-RABBITMQ_DEFAULT_ALLOC_ARGS="+MBas ageffcbf +MHas ageffcbf +MBlmbcs 512 +MHlmbcs 512 +MMmcs 30"
-
-
-trap '' HUP TSTP CONT
-trap "stop_rabbitmq_server; exit 0" TERM
-trap "stop_rabbitmq_server; exit 130" INT
-
-
-export ERL_LIBS="$RABBITMQ_HOME/plugins"
-
-exec erl \
-    -pa "" \
-    -noinput -s rabbit boot \
-    -boot start_sasl \
-    +W w \
-    +MBas ageffcbf +MHas ageffcbf +MBlmbcs 512 +MHlmbcs 512 +MMmcs 30 \
-    -syslog logger '[]' \
-    -syslog syslog_error_logger false \
-    -kernel prevent_overlapping_partitions false
