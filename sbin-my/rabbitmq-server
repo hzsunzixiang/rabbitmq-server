@@ -80,12 +80,6 @@ start_rabbitmq_server() {
         "$@"
 }
 
-stop_rabbitmq_server() {
-    if test "$rabbitmq_server_pid"; then
-        kill -TERM "$rabbitmq_server_pid"
-        wait "$rabbitmq_server_pid" || true
-    fi
-}
 
 RABBITMQ_SERVER_START_ARGS="${RABBITMQ_SERVER_START_ARGS} ${RABBITMQ_IGNORE_SIGINT_FLAG}"
 trap '' HUP TSTP CONT
