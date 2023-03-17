@@ -2,5 +2,7 @@
 
 export ERL_LIBS="/home/ericksun/program/rabbitmq-server/plugins"
 
-erl -pa  -noinput -s rabbit boot -boot start_sasl +W w +MBas ageffcbf +MHas ageffcbf +MBlmbcs 512 +MHlmbcs 512 +MMmcs 30 -syslog logger [] -syslog syslog_error_logger false -kernel prevent_overlapping_partitions false
+#erl -pa  -noinput -s rabbit boot -boot start_sasl +W w +MBas ageffcbf +MHas ageffcbf +MBlmbcs 512 +MHlmbcs 512 +MMmcs 30 -syslog logger [] -syslog syslog_error_logger false -kernel prevent_overlapping_partitions false
+#erl -noinput -s rabbit boot -boot start_sasl 
+erl -noinput -s rabbit boot 
 
