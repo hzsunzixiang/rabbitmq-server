@@ -2,11 +2,20 @@
 
 -include("src/sysexits.hrl").
 
--export([run/2]).
+-export([run/2,
+         run_old/2]).
 
 -spec run(string(), iodata()) -> ok.
 
-run(ProgName, RawArgs) ->
+run(_ProgName, Args) ->
+    ParserOpts = #{},
+    CommandMods = discover_commands(),
+    CommandSpec = collect_args_spec(CommandMods, ParserOpts),
+    rabbit_cli_io:setup(#{}), % ParsedArgs
+    argparse:run(Args, CommandSpec, ParserOpts),
+    rabbit_cli_io:close().
+
+run_old(ProgName, RawArgs) ->
     ParserOpts = #{progname => ProgName},
     CommandMods = discover_commands(),
     CommandSpec = collect_args_spec(CommandMods, ParserOpts),
@@ -86,15 +95,15 @@ set_log_level({ArgMap, _}) ->
 collect_args_spec(Modules, Options) when is_list(Modules) ->
     lists:foldl(
         fun (Mod, Cmds) ->
-                ModCmd =
-                try
-                    {_, MCmd} = argparse:validate(Mod:cli(), Options),
-                    MCmd
-                catch
-                    _:_ ->
-                        %% TODO: Handle error.
-                        #{}
-                end,
+                ModCmd = Mod:cli(),
+                %try
+                    %{_, MCmd} = argparse:validate(Mod:cli(), Options),
+                    %MCmd
+                %catch
+                    %_:_ ->
+                        %%% TODO: Handle error.
+                        %#{}
+                %end,
 
                 %% handlers: use first non-empty handler
                 Cmds1 =
