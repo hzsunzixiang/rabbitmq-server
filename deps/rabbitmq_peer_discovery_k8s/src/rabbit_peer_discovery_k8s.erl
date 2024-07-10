@@ -9,7 +9,8 @@
 -behaviour(rabbit_peer_discovery_backend).
 
 -export([init/0, list_nodes/0, supports_registration/0, register/0,
-         unregister/0, post_registration/0, lock/1, unlock/1, node/0]).
+         unregister/0, post_registration/0, lock/1, unlock/1, node/0,
+        retry_forever/0]).
 
 -include_lib("kernel/include/logger.hrl").
 -include_lib("rabbit_common/include/logging.hrl").
@@ -49,3 +50,4 @@ unregister() -> ok.
 post_registration() -> ok.
 lock(_) -> not_supported.
 unlock(_) -> ok.
+retry_forever() -> true.

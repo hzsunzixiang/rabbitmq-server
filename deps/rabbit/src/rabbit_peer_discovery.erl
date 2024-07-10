@@ -154,13 +154,13 @@ sync_desired_cluster() ->
 
     %% We handle retries at the top level: steps are followed sequentially and
     %% if one of them fails, we retry the whole process.
-    {Retries, RetryDelay} = discovery_retries(),
+    {Retries, RetryDelay} = discovery_retries(Backend),
 
     sync_desired_cluster(Backend, Retries, RetryDelay).
 
 -spec sync_desired_cluster(Backend, RetriesLeft, RetryDelay) -> ok when
       Backend :: backend(),
-      RetriesLeft :: non_neg_integer(),
+      RetriesLeft :: non_neg_integer() | infinity,
       RetryDelay :: non_neg_integer().
 %% @private
 
@@ -241,12 +241,20 @@ sync_desired_cluster(Backend, RetriesLeft, RetryDelay) ->
 
 -spec retry_sync_desired_cluster(Backend, RetriesLeft, RetryDelay) -> ok when
       Backend :: backend(),
-      RetriesLeft :: non_neg_integer(),
+      RetriesLeft :: non_neg_integer() | infinity,
       RetryDelay :: non_neg_integer().
 %% @private
 
+retry_sync_desired_cluster(Backend, infinity, RetryDelay) ->
+    ?LOG_DEBUG(
+       "Peer discovery: retrying to create/sync cluster in ~b ms "
+       "(will retry forever)",
+       [RetryDelay],
+       #{domain => ?RMQLOG_DOMAIN_PEER_DISC}),
+    timer:sleep(RetryDelay),
+    sync_desired_cluster(Backend, infinity, RetryDelay);
 retry_sync_desired_cluster(Backend, RetriesLeft, RetryDelay)
-  when RetriesLeft > 0 ->
+  when is_integer(RetriesLeft) andalso RetriesLeft > 0 ->
     RetriesLeft1 = RetriesLeft - 1,
     ?LOG_DEBUG(
        "Peer discovery: retrying to create/sync cluster in ~b ms "
@@ -1041,18 +1049,25 @@ maybe_unregister() ->
             ok
     end.
 
--spec discovery_retries() -> {Retries, RetryDelay} when
+-spec discovery_retries(Backend) -> {Retries, RetryDelay} when
+      Backend :: backend(),
       Retries :: non_neg_integer(),
       RetryDelay :: non_neg_integer().
 
-discovery_retries() ->
+discovery_retries(Backend) ->
+    Retries0 = case erlang:function_exported(Backend, init, 0) of
+                   true  ->
+                       infinity;
+                   false ->
+                       ?DEFAULT_DISCOVERY_RETRY_COUNT
+               end,
     case application:get_env(rabbit, cluster_formation) of
         {ok, Proplist} ->
-            Retries  = proplists:get_value(discovery_retry_limit,    Proplist, ?DEFAULT_DISCOVERY_RETRY_COUNT),
+            Retries  = proplists:get_value(discovery_retry_limit,    Proplist, Retries0),
             Interval = proplists:get_value(discovery_retry_interval, Proplist, ?DEFAULT_DISCOVERY_RETRY_INTERVAL_MS),
             {Retries, Interval};
         undefined ->
-            {?DEFAULT_DISCOVERY_RETRY_COUNT, ?DEFAULT_DISCOVERY_RETRY_INTERVAL_MS}
+            {Retries0, ?DEFAULT_DISCOVERY_RETRY_INTERVAL_MS}
     end.
 
 -spec register(Backend) -> ok when

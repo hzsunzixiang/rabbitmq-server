@@ -54,7 +54,9 @@
 
 -callback unlock(Data :: term()) -> ok.
 
--optional_callbacks([init/0]).
+-callback retry_forever() -> boolean().
+
+-optional_callbacks([init/0, retry_forever/0]).
 
 -export([api_version/0]).
 
