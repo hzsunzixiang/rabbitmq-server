@@ -158,20 +158,24 @@ DEP_PLUGINS = rabbit_common/mk/rabbitmq-plugin.mk
 include ../../rabbitmq-components.mk
 include ../../erlang.mk
 
-CLI_SCRIPTS := scripts/rmq
+ESCRIPT_NAME := rabbit_cli
+ESCRIPT_FILE := scripts/rmq
 
-ebin/$(PROJECT).app:: $(CLI_SCRIPTS)
+ebin/$(PROJECT).app:: $(ESCRIPT_FILE)
 
-$(CLI_SCRIPTS): ebin/rabbit_cli_escript.beam
-	$(gen_verbose) echo '#!/usr/bin/env escript' > "$@"
-	$(verbose) echo '%%! -start_epmd false' >> "$@"
-	$(verbose) cat $^ >> "$@"
-	$(verbose) chmod a+x "$@"
+$(ESCRIPT_FILE): ebin/rabbit_cli.beam ebin/rabbit_cli_args.beam ebin/rabbit_cli_io.beam
+	$(gen_verbose) cd .. && $(ESCRIPT_ZIP) $(abspath $(ESCRIPT_ZIP_FILE)) $(patsubst %,$(PROJECT)/%,$^)
+	$(gen_verbose) printf "%s\n" \
+		"#!$(ESCRIPT_SHEBANG)" \
+		"%% $(ESCRIPT_COMMENT)" \
+		"%%! $(ESCRIPT_EMU_ARGS)" > $(ESCRIPT_FILE)
+	$(verbose) cat $(abspath $(ESCRIPT_ZIP_FILE)) >> $(ESCRIPT_FILE)
+	$(verbose) chmod a+x $(ESCRIPT_FILE)
 
 clean:: clean-cli
 
 clean-cli:
-	$(gen_verbose) rm -f $(CLI_SCRIPTS)
+	$(gen_verbose) rm -f $(ESCRIPT_FILE)
 
 ifeq ($(strip $(BATS)),)
 BATS := $(ERLANG_MK_TMP)/bats/bin/bats

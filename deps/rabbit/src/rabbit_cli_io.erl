@@ -1,35 +1,176 @@
 -module(rabbit_cli_io).
 
--export([setup/1,
-         close/0,
-         notify/1,
-         sync_notify/1,
-         log/2]).
+-include_lib("kernel/include/logger.hrl").
 
--define(EVENT_MGR_REF, ?MODULE).
+-include_lib("rabbit_common/include/resource.hrl").
 
-setup(Args) ->
-    case gen_event:start_link({local, ?EVENT_MGR_REF}, []) of
-        {ok, Pid} ->
-            ok = gen_event:add_sup_handler(
-                   Pid,
-                   rabbit_cli_io_console,
-                   Args),
-            ok = logger:add_handler(
-                   ?EVENT_MGR_REF, ?MODULE, #{}),
-            ok = logger:remove_handler(default),
-            %% TODO: Register output for Erlang Logger.
-            {ok, Pid}
+-export([start_link/0,
+         stop/1,
+         start_record_stream/4,
+         push_new_record/3,
+         end_record_stream/2]).
+-export([init/1,
+         handle_call/3,
+         handle_cast/2,
+         handle_info/2,
+         terminate/2,
+         code_change/3]).
+
+-record(?MODULE, {record_streams = #{}}).
+
+start_link() ->
+    gen_server:start_link(rabbit_cli_io, none, []).
+
+stop(IO) ->
+    MRef = erlang:monitor(process, IO),
+    _ = gen_server:call(IO, stop),
+    receive
+        {'DOWN', MRef, _, _, _Reason} ->
+            ok
     end.
 
-close() ->
-    gen_event:stop(?EVENT_MGR_REF).
+start_record_stream(
+  IO, Name, Fields, {_Progname, ArgMap, RemainingArgs} = ProgAndArgs)
+  when is_pid(IO) andalso
+       is_atom(Name) andalso
+       is_map(ArgMap) andalso
+       is_list(RemainingArgs) ->
+    gen_server:call(IO, {?FUNCTION_NAME, Name, Fields, ProgAndArgs}).
 
-notify(Event) ->
-    gen_event:notify(?EVENT_MGR_REF, Event).
+push_new_record(IO, #{name := Name}, Record) ->
+    gen_server:cast(IO, {?FUNCTION_NAME, Name, Record}).
 
-sync_notify(Event) ->
-    gen_event:sync_notify(?EVENT_MGR_REF, Event).
+end_record_stream(IO, #{name := Name}) ->
+    gen_server:cast(IO, {?FUNCTION_NAME, Name}).
 
-log(LogEvent, Config) ->
-    sync_notify({log_event, LogEvent, Config}).
+init(_Args) ->
+    process_flag(trap_exit, true),
+    State = #?MODULE{},
+    {ok, State}.
+
+handle_call(
+  {start_record_stream, Name, Fields, {Progname, ArgMap, RemainingArgs}},
+  From,
+  #?MODULE{record_streams = Streams} = State) ->
+    Definition = #{
+                   arguments =>
+                   [
+                    #{name => output,
+                      long => "-output",
+                      short => $o,
+                      type => string,
+                      nargs => 1,
+                      help => "Write output to file <FILE>"},
+                    #{name => format,
+                      long => "-format",
+                      short => $f,
+                      type => {atom, [plain, json]},
+                      nargs => 1,
+                      help => "Format output acccording to <FORMAT>"}
+                   ]
+                  },
+    Options = #{progname => Progname},
+    case rabbit_cli_args:parse(RemainingArgs, Definition, Options) of
+        {ok, NewArgMap, _, _, []} ->
+            _ArgMap1 = maps:merge(ArgMap, NewArgMap),
+            Stream = #{name => Name, fields => Fields},
+            gen_server:reply(From, {ok, Stream}),
+
+            FieldNames = [atom_to_list(FieldName)
+                          || #{name := FieldName} <- Fields],
+            Header = string:join(FieldNames, "\t"),
+            io:format("~ts~n", [Header]),
+
+            Streams1 = Streams#{Name => Stream},
+            State1 = State#?MODULE{record_streams = Streams1},
+            {noreply, State1};
+        {error, _} = Error ->
+            {reply, Error, State}
+    end;
+handle_call(stop, _From, State) ->
+    {stop, normal, ok, State};
+handle_call(_Request, _From, State) ->
+    {reply, ok, State}.
+
+handle_cast(
+  {push_new_record, Name, Record},
+  #?MODULE{record_streams = Streams} = State) ->
+    #{fields := Fields} = maps:get(Name, Streams),
+    Values = format_fields(Fields, Record),
+    Line = string:join(Values, "\t"),
+    io:format("~ts~n", [Line]),
+    {noreply, State};
+handle_cast({end_record_stream, _Name}, State) ->
+    {noreply, State};
+handle_cast(_Request, State) ->
+    {noreply, State}.
+
+handle_info(_Info, State) ->
+    {noreply, State}.
+
+terminate(_Reason, _State) ->
+    ok.
+
+code_change(_OldVsn, State, _Extra) ->
+    {ok, State}.
+
+format_fields(Fields, Values) ->
+    format_fields(Fields, Values, []).
+
+format_fields([#{type := string} | Rest1], [Value | Rest2], Acc) ->
+    String = io_lib:format("~ts", [Value]),
+    Acc1 = [String | Acc],
+    format_fields(Rest1, Rest2, Acc1);
+format_fields([#{type := integer} | Rest1], [Value | Rest2], Acc) ->
+    String = io_lib:format("~b", [Value]),
+    Acc1 = [String | Acc],
+    format_fields(Rest1, Rest2, Acc1);
+format_fields([#{type := boolean} | Rest1], [Value | Rest2], Acc) ->
+    String = io_lib:format("~ts", [if Value -> "☑"; true -> "☐" end]),
+    Acc1 = [String | Acc],
+    format_fields(Rest1, Rest2, Acc1);
+format_fields([#{type := resource} | Rest1], [Value | Rest2], Acc) ->
+    #resource{name = Name} = Value,
+    String = io_lib:format("~ts", [Name]),
+    Acc1 = [String | Acc],
+    format_fields(Rest1, Rest2, Acc1);
+format_fields([#{type := term} | Rest1], [Value | Rest2], Acc) ->
+    String = io_lib:format("~0p", [Value]),
+    Acc1 = [String | Acc],
+    format_fields(Rest1, Rest2, Acc1);
+format_fields([], [], Acc) ->
+    lists:reverse(Acc).
+
+%-export([setup/1,
+%         close/0,
+%         notify/1,
+%         sync_notify/1,
+%         log/2]).
+%
+%-define(EVENT_MGR_REF, ?MODULE).
+%
+%setup(Args) ->
+%    case gen_event:start_link({local, ?EVENT_MGR_REF}, []) of
+%        {ok, Pid} ->
+%            ok = gen_event:add_sup_handler(
+%                   Pid,
+%                   rabbit_cli_io_console,
+%                   Args),
+%            ok = logger:add_handler(
+%                   ?EVENT_MGR_REF, ?MODULE, #{}),
+%            ok = logger:remove_handler(default),
+%            %% TODO: Register output for Erlang Logger.
+%            {ok, Pid}
+%    end.
+%
+%close() ->
+%    gen_event:stop(?EVENT_MGR_REF).
+%
+%notify(Event) ->
+%    gen_event:notify(?EVENT_MGR_REF, Event).
+%
+%sync_notify(Event) ->
+%    gen_event:sync_notify(?EVENT_MGR_REF, Event).
+%
+%log(LogEvent, Config) ->
+%    sync_notify({log_event, LogEvent, Config}).
