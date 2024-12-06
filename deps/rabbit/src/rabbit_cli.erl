@@ -16,41 +16,88 @@ main(Args) ->
 run_cli(Args) ->
     maybe
         Progname = escript:script_name(),
+        add_rabbitmq_code_path(Progname),
+
         {ok, ArgMap, RemainingArgs} ?= parse_args(Progname, Args),
         Nodename = lookup_rabbitmq_nodename(ArgMap),
         {ok, _} ?= net_kernel:start(undefined, #{name_domain => shortnames}),
-        true ?= net_kernel:connect_node(Nodename),
 
         {ok, IO} ?= rabbit_cli_io:start_link(),
-        try
-            Ret = run_command(Nodename, Progname, ArgMap, RemainingArgs, IO),
-            io:format("Ret = ~p~n", [Ret])
-        after
-            rabbit_cli_io:stop(IO)
-        end,
+        Ret = case net_kernel:connect_node(Nodename) of
+                  true ->
+                      catch run_command(
+                              Nodename, Progname, ArgMap, RemainingArgs, IO);
+                  false ->
+                      catch run_command(
+                              undefined, Progname, ArgMap, RemainingArgs, IO)
+              end,
+        io:format("Ret = ~p~n", [Ret]),
+        rabbit_cli_io:stop(IO),
         ok
     end.
 
+add_rabbitmq_code_path(Progname) ->
+    ScriptDir = filename:dirname(Progname),
+    PluginsDir0 = filename:join([ScriptDir, "..", "plugins"]),
+    PluginsDir1 = case filelib:is_dir(PluginsDir0) of
+                      true ->
+                          PluginsDir0
+                  end,
+    Glob = filename:join([PluginsDir1, "*", "ebin"]),
+    AppDirs = filelib:wildcard(Glob),
+    lists:foreach(fun code:add_path/1, AppDirs),
+    ok.
+
+argparse_def() ->
+    #{arguments =>
+      [
+       #{name => help,
+         long => "-help",
+         short => $h,
+         type => boolean,
+         help => "Display help and exit"},
+       #{name => node,
+         long => "-node",
+         short => $n,
+         type => string,
+         nargs => 1,
+         help => "Name of the node to control"},
+       #{name => verbose,
+         long => "-verbose",
+         short => $v,
+         action => count,
+         help =>
+         "Be verbose; can be specified multiple times to increase verbosity"},
+       #{name => version,
+         long => "-version",
+         short => $V,
+         help =>
+         "Display version and exit"}
+      ]}.
+
 parse_args(Progname, Args) ->
-    Definition = #{arguments =>
-                   [#{name => verbose,
-                      long => "-verbose",
-                      short => $v,
-                      action => count,
-                      help =>
-                      "Be verbose; can be specified multiple times to "
-                      "increase verbosity"},
-                    #{name => node,
-                      long => "-node",
-                      short => $n,
-                      type => string,
-                      nargs => 1,
-                      help => "Name of the node to control"}]},
+    Definition = argparse_def(),
     Options = #{progname => Progname},
-    case rabbit_cli_args:parse(Args, Definition, Options) of
+    case partial_parse(Args, Definition, Options) of
         {ok, ArgMap, _CmdPath, _Command, RemainingArgs} ->
             {ok, ArgMap, RemainingArgs};
         {error, _} = Error->
+            Error
+    end.
+
+partial_parse(Args, Definition, Options) ->
+    partial_parse(Args, Definition, Options, []).
+
+partial_parse(Args, Definition, Options, RemainingArgs) ->
+    case argparse:parse(Args, Definition, Options) of
+        {ok, ArgMap, CmdPath, Command} ->
+            RemainingArgs1 = lists:reverse(RemainingArgs),
+            {ok, ArgMap, CmdPath, Command, RemainingArgs1};
+        {error, {_CmdPath, undefined, Arg, <<>>}} ->
+            Args1 = Args -- [Arg],
+            RemainingArgs1 = [Arg | RemainingArgs],
+            partial_parse(Args1, Definition, Options, RemainingArgs1);
+        {error, _} = Error ->
             Error
     end.
 
@@ -131,12 +178,10 @@ complete_nodename(Nodename) ->
 %        nomatch ->
 %            true
 %    end.
-%
-%lookup_local_command_map() ->
-%    ScriptDir = filename:dirname(escript:script_name()),
-%    io:format("Script = ~p~n", [ScriptDir]),
-%    ok.
 
+run_command(undefined, Progname, #{help := true}, _RemainingArgs, IO) ->
+    Definition = argparse_def(),
+    rabbit_cli_io:display_help(IO, Progname, [], Definition);
 run_command(Nodename, Progname, ArgMap, RemainingArgs, IO) ->
     try
         erpc:call(

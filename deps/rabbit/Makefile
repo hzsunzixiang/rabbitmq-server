@@ -163,13 +163,12 @@ ESCRIPT_FILE := scripts/rmq
 
 ebin/$(PROJECT).app:: $(ESCRIPT_FILE)
 
-$(ESCRIPT_FILE): ebin/rabbit_cli.beam ebin/rabbit_cli_args.beam ebin/rabbit_cli_io.beam
-	$(gen_verbose) cd .. && $(ESCRIPT_ZIP) $(abspath $(ESCRIPT_ZIP_FILE)) $(patsubst %,$(PROJECT)/%,$^)
+$(ESCRIPT_FILE): ebin/rabbit_cli.beam
 	$(gen_verbose) printf "%s\n" \
 		"#!$(ESCRIPT_SHEBANG)" \
 		"%% $(ESCRIPT_COMMENT)" \
 		"%%! $(ESCRIPT_EMU_ARGS)" > $(ESCRIPT_FILE)
-	$(verbose) cat $(abspath $(ESCRIPT_ZIP_FILE)) >> $(ESCRIPT_FILE)
+	$(verbose) cat $< >> $(ESCRIPT_FILE)
 	$(verbose) chmod a+x $(ESCRIPT_FILE)
 
 clean:: clean-cli

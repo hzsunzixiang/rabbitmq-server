@@ -6,6 +6,8 @@
 
 -export([start_link/0,
          stop/1,
+         argparse_def/1,
+         display_help/4,
          start_record_stream/4,
          push_new_record/3,
          end_record_stream/2]).
@@ -29,12 +31,31 @@ stop(IO) ->
             ok
     end.
 
-start_record_stream(
-  IO, Name, Fields, {_Progname, ArgMap, RemainingArgs} = ProgAndArgs)
+argparse_def(record_stream) ->
+    #{arguments =>
+      [
+       #{name => output,
+         long => "-output",
+         short => $o,
+         type => string,
+         nargs => 1,
+         help => "Write output to file <FILE>"},
+       #{name => format,
+         long => "-format",
+         short => $f,
+         type => {atom, [plain, json]},
+         nargs => 1,
+         help => "Format output acccording to <FORMAT>"}
+      ]
+     }.
+
+display_help(IO, Progname, CmdPath, ArgparseDef) ->
+    gen_server:cast(IO, {?FUNCTION_NAME, Progname, CmdPath, ArgparseDef}).
+
+start_record_stream(IO, Name, Fields, {_Progname, ArgMap} = ProgAndArgs)
   when is_pid(IO) andalso
        is_atom(Name) andalso
-       is_map(ArgMap) andalso
-       is_list(RemainingArgs) ->
+       is_map(ArgMap) ->
     gen_server:call(IO, {?FUNCTION_NAME, Name, Fields, ProgAndArgs}).
 
 push_new_record(IO, #{name := Name}, Record) ->
@@ -49,49 +70,33 @@ init(_Args) ->
     {ok, State}.
 
 handle_call(
-  {start_record_stream, Name, Fields, {Progname, ArgMap, RemainingArgs}},
+  {start_record_stream, Name, Fields, {_Progname, _ArgMap}},
   From,
   #?MODULE{record_streams = Streams} = State) ->
-    Definition = #{
-                   arguments =>
-                   [
-                    #{name => output,
-                      long => "-output",
-                      short => $o,
-                      type => string,
-                      nargs => 1,
-                      help => "Write output to file <FILE>"},
-                    #{name => format,
-                      long => "-format",
-                      short => $f,
-                      type => {atom, [plain, json]},
-                      nargs => 1,
-                      help => "Format output acccording to <FORMAT>"}
-                   ]
-                  },
-    Options = #{progname => Progname},
-    case rabbit_cli_args:parse(RemainingArgs, Definition, Options) of
-        {ok, NewArgMap, _, _, []} ->
-            _ArgMap1 = maps:merge(ArgMap, NewArgMap),
-            Stream = #{name => Name, fields => Fields},
-            gen_server:reply(From, {ok, Stream}),
+    Stream = #{name => Name, fields => Fields},
+    gen_server:reply(From, {ok, Stream}),
 
-            FieldNames = [atom_to_list(FieldName)
-                          || #{name := FieldName} <- Fields],
-            Header = string:join(FieldNames, "\t"),
-            io:format("~ts~n", [Header]),
+    FieldNames = [atom_to_list(FieldName)
+                  || #{name := FieldName} <- Fields],
+    Header = string:join(FieldNames, "\t"),
+    io:format("~ts~n", [Header]),
 
-            Streams1 = Streams#{Name => Stream},
-            State1 = State#?MODULE{record_streams = Streams1},
-            {noreply, State1};
-        {error, _} = Error ->
-            {reply, Error, State}
-    end;
+    Streams1 = Streams#{Name => Stream},
+    State1 = State#?MODULE{record_streams = Streams1},
+    {noreply, State1};
 handle_call(stop, _From, State) ->
     {stop, normal, ok, State};
 handle_call(_Request, _From, State) ->
     {reply, ok, State}.
 
+handle_cast(
+  {display_help, Progname, CmdPath, ArgparseDef},
+  State) ->
+    Options = #{progname => Progname,
+                command => CmdPath},
+    Help = argparse:help(ArgparseDef, Options),
+    io:format("~s~n", [Help]),
+    {noreply, State};
 handle_cast(
   {push_new_record, Name, Record},
   #?MODULE{record_streams = Streams} = State) ->
