@@ -5,35 +5,56 @@
 -export([main/1]).
 
 main(Args) ->
-    case run_cli(Args) of
-        ok ->
-            erlang:halt();
-        {error, ErrorMsg} ->
-            io:format(standard_error, "Error: ~ts~n", [ErrorMsg]),
-            erlang:halt(1)
-    end.
+    Ret = run_cli(Args),
+    io:format(standard_error, "Ret: ~p~n", [Ret]),
+    erlang:halt().
 
 run_cli(Args) ->
     maybe
         Progname = escript:script_name(),
         add_rabbitmq_code_path(Progname),
 
-        {ok, ArgMap, RemainingArgs} ?= parse_args(Progname, Args),
-        Nodename = lookup_rabbitmq_nodename(ArgMap),
-        {ok, _} ?= net_kernel:start(undefined, #{name_domain => shortnames}),
+        PartialArgparseDef = argparse_def(),
+        {ok,
+         PartialArgMap,
+         PartialCmdPath,
+         PartialCommand} ?= initial_parse(Progname, Args, PartialArgparseDef),
 
-        {ok, IO} ?= rabbit_cli_io:start_link(),
-        Ret = case net_kernel:connect_node(Nodename) of
-                  true ->
-                      catch run_command(
-                              Nodename, Progname, ArgMap, RemainingArgs, IO);
-                  false ->
-                      catch run_command(
-                              undefined, Progname, ArgMap, RemainingArgs, IO)
-              end,
-        io:format("Ret = ~p~n", [Ret]),
-        rabbit_cli_io:stop(IO),
-        ok
+        %% Get remote node name and prepare Erlang distribution.
+        Nodename = lookup_rabbitmq_nodename(PartialArgMap),
+        {ok, _} ?= net_kernel:start(
+                     undefined, #{name_domain => shortnames}),
+
+        {ok, IO} ?= rabbit_cli_io:start_link(Progname),
+        try
+            %% Can we reach the remote node?
+            case net_kernel:connect_node(Nodename) of
+                true ->
+                    maybe
+                        %% We can query the argparse definition from the
+                        %% remote node to know the commands it supports and
+                        %% proceed with the execution.
+                        ArgparseDef = get_final_argparse_def(Nodename),
+                        {ok,
+                         ArgMap,
+                         CmdPath,
+                         Command} ?= final_parse(Progname, Args, ArgparseDef),
+                        run_command(
+                          Nodename, ArgparseDef,
+                          Progname, ArgMap, CmdPath, Command,
+                          IO)
+                    end;
+                false ->
+                    %% We can't reach the remote node. Let's fallback
+                    %% to a local execution.
+                    run_command(
+                      undefined, PartialArgparseDef,
+                      Progname, PartialArgMap, PartialCmdPath,
+                      PartialCommand, IO)
+            end
+        after
+            rabbit_cli_io:stop(IO)
+        end
     end.
 
 add_rabbitmq_code_path(Progname) ->
@@ -73,33 +94,44 @@ argparse_def() ->
          short => $V,
          help =>
          "Display version and exit"}
-      ]}.
+      ],
 
-parse_args(Progname, Args) ->
-    Definition = argparse_def(),
+      commands => #{}}.
+
+initial_parse(Progname, Args, ArgparseDef) ->
     Options = #{progname => Progname},
-    case partial_parse(Args, Definition, Options) of
-        {ok, ArgMap, _CmdPath, _Command, RemainingArgs} ->
-            {ok, ArgMap, RemainingArgs};
+    case partial_parse(Args, ArgparseDef, Options) of
+        {ok, ArgMap, CmdPath, Command, _RemainingArgs} ->
+            {ok, ArgMap, CmdPath, Command};
         {error, _} = Error->
             Error
     end.
 
-partial_parse(Args, Definition, Options) ->
-    partial_parse(Args, Definition, Options, []).
+partial_parse(Args, ArgparseDef, Options) ->
+    partial_parse(Args, ArgparseDef, Options, []).
 
-partial_parse(Args, Definition, Options, RemainingArgs) ->
-    case argparse:parse(Args, Definition, Options) of
+partial_parse(Args, ArgparseDef, Options, RemainingArgs) ->
+    case argparse:parse(Args, ArgparseDef, Options) of
         {ok, ArgMap, CmdPath, Command} ->
             RemainingArgs1 = lists:reverse(RemainingArgs),
             {ok, ArgMap, CmdPath, Command, RemainingArgs1};
         {error, {_CmdPath, undefined, Arg, <<>>}} ->
             Args1 = Args -- [Arg],
             RemainingArgs1 = [Arg | RemainingArgs],
-            partial_parse(Args1, Definition, Options, RemainingArgs1);
+            partial_parse(Args1, ArgparseDef, Options, RemainingArgs1);
         {error, _} = Error ->
             Error
     end.
+
+get_final_argparse_def(Nodename) ->
+    ArgparseDef1 = argparse_def(),
+    ArgparseDef2 = erpc:call(Nodename, rabbit_cli_commands, argparse_def, []),
+    ArgparseDef = maps:merge(ArgparseDef1, ArgparseDef2),
+    ArgparseDef.
+
+final_parse(Progname, Args, ArgparseDef) ->
+    Options = #{progname => Progname},
+    argparse:parse(Args, ArgparseDef, Options).
 
 lookup_rabbitmq_nodename(#{node := Nodename}) ->
     Nodename1 = complete_nodename(Nodename),
@@ -137,6 +169,15 @@ complete_nodename(Nodename) ->
         match ->
             list_to_atom(Nodename)
     end.
+
+run_command(
+  _Nodename, ArgparseDef, _Progname, #{help := true}, CmdPath, _Command, IO) ->
+    rabbit_cli_io:display_help(IO, CmdPath, ArgparseDef);
+run_command(Nodename, _ArgparseDef, Progname, ArgMap, CmdPath, Command, IO) ->
+    erpc:call(
+      Nodename,
+      rabbit_cli_commands, run_command,
+      [Progname, ArgMap, CmdPath, Command, IO]).
 
 %lookup_command_map(Nodename) ->
 %    %% Order of operations:
@@ -178,17 +219,3 @@ complete_nodename(Nodename) ->
 %        nomatch ->
 %            true
 %    end.
-
-run_command(undefined, Progname, #{help := true}, _RemainingArgs, IO) ->
-    Definition = argparse_def(),
-    rabbit_cli_io:display_help(IO, Progname, [], Definition);
-run_command(Nodename, Progname, ArgMap, RemainingArgs, IO) ->
-    try
-        erpc:call(
-          Nodename,
-          rabbit_cli_commands, run_command,
-          [Progname, ArgMap, RemainingArgs, IO])
-    catch
-        error:{erpc, Reason} ->
-            {error, Reason}
-    end.

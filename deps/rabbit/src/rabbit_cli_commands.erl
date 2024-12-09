@@ -2,41 +2,29 @@
 
 -include_lib("kernel/include/logger.hrl").
 
--export([argparse_def/0, run_command/4]).
--export([list_exchanges/3]).
+-export([argparse_def/0, run_command/5]).
+-export([list_exchanges/5]).
 
 argparse_def() ->
     %% Extract the commands from module attributes like feature flags and boot
     %% steps.
     #{commands =>
       #{"list" =>
-       #{commands =>
+       #{help => "List entities",
+         commands =>
          #{"exchanges" =>
            maps:merge(
              rabbit_cli_io:argparse_def(record_stream),
-             #{handler => {?MODULE, list_exchanges}})
+             #{help => "List exchanges",
+               handler => {?MODULE, list_exchanges}})
           }
         }
       }
      }.
 
-run_command(Progname, ArgMap, Args, IO) ->
-    Definition = argparse_def(),
-    Options = #{progname => Progname},
-    case argparse:parse(Args, Definition, Options) of
-        {ok, NewArgMap, CmdPath, Command} ->
-            ArgMap1 = maps:merge(ArgMap, NewArgMap),
-            run_command1(Progname, CmdPath, ArgMap1, Command, IO);
-        {error, Reason} = Error ->
-            ?LOG_ALERT("Error: ~s", [argparse:format_error(Reason)]),
-            Error
-    end.
-
-run_command1(Progname, CmdPath, #{help := true}, Command, IO) ->
-    rabbit_cli_io:display_help(IO, Progname, CmdPath, Command);
-run_command1(Progname, _CmdPath, ArgMap, Command, IO) ->
+run_command(Progname, ArgMap, CmdPath, Command, IO) ->
     %% TODO: Put both processes under the rabbit supervision tree.
-    RunnerPid = command_runner(Progname, Command, ArgMap, IO),
+    RunnerPid = command_runner(Progname, ArgMap, CmdPath, Command, IO),
     RunnerMRef = erlang:monitor(process, RunnerPid),
     receive
         {'DOWN', RunnerMRef, _, _, Reason} ->
@@ -44,10 +32,10 @@ run_command1(Progname, _CmdPath, ArgMap, Command, IO) ->
     end.
 
 command_runner(
-  Progname, #{handler := {Mod, Fun}} = _Command, ArgMap, IO) ->
-    spawn_link(Mod, Fun, [Progname, ArgMap, IO]).
+  Progname, ArgMap, CmdPath, #{handler := {Mod, Fun}} = Command, IO) ->
+    spawn_link(Mod, Fun, [Progname, ArgMap, CmdPath, Command, IO]).
 
-list_exchanges(Progname, ArgMap, IO) ->
+list_exchanges(_Progname, ArgMap, _CmdPath, _Command, IO) ->
     InfoKeys = rabbit_exchange:info_keys(),
     Fields = lists:map(
                fun
@@ -70,7 +58,7 @@ list_exchanges(Progname, ArgMap, IO) ->
                    (Key) ->
                        #{name => Key, type => term}
                end, InfoKeys),
-    case rabbit_cli_io:start_record_stream(IO, exchanges, Fields, {Progname, ArgMap}) of
+    case rabbit_cli_io:start_record_stream(IO, exchanges, Fields, ArgMap) of
         {ok, Stream} ->
             Exchanges = rabbit_exchange:list(),
             lists:foreach(

@@ -4,10 +4,10 @@
 
 -include_lib("rabbit_common/include/resource.hrl").
 
--export([start_link/0,
+-export([start_link/1,
          stop/1,
          argparse_def/1,
-         display_help/4,
+         display_help/3,
          start_record_stream/4,
          push_new_record/3,
          end_record_stream/2]).
@@ -18,10 +18,11 @@
          terminate/2,
          code_change/3]).
 
--record(?MODULE, {record_streams = #{}}).
+-record(?MODULE, {progname,
+                  record_streams = #{}}).
 
-start_link() ->
-    gen_server:start_link(rabbit_cli_io, none, []).
+start_link(Progname) ->
+    gen_server:start_link(rabbit_cli_io, #{progname => Progname}, []).
 
 stop(IO) ->
     MRef = erlang:monitor(process, IO),
@@ -49,14 +50,14 @@ argparse_def(record_stream) ->
       ]
      }.
 
-display_help(IO, Progname, CmdPath, ArgparseDef) ->
-    gen_server:cast(IO, {?FUNCTION_NAME, Progname, CmdPath, ArgparseDef}).
+display_help(IO, CmdPath, Command) ->
+    gen_server:cast(IO, {?FUNCTION_NAME, CmdPath, Command}).
 
-start_record_stream(IO, Name, Fields, {_Progname, ArgMap} = ProgAndArgs)
+start_record_stream(IO, Name, Fields, ArgMap)
   when is_pid(IO) andalso
        is_atom(Name) andalso
        is_map(ArgMap) ->
-    gen_server:call(IO, {?FUNCTION_NAME, Name, Fields, ProgAndArgs}).
+    gen_server:call(IO, {?FUNCTION_NAME, Name, Fields, ArgMap}).
 
 push_new_record(IO, #{name := Name}, Record) ->
     gen_server:cast(IO, {?FUNCTION_NAME, Name, Record}).
@@ -64,13 +65,13 @@ push_new_record(IO, #{name := Name}, Record) ->
 end_record_stream(IO, #{name := Name}) ->
     gen_server:cast(IO, {?FUNCTION_NAME, Name}).
 
-init(_Args) ->
+init(#{progname := Progname}) ->
     process_flag(trap_exit, true),
-    State = #?MODULE{},
+    State = #?MODULE{progname = Progname},
     {ok, State}.
 
 handle_call(
-  {start_record_stream, Name, Fields, {_Progname, _ArgMap}},
+  {start_record_stream, Name, Fields, _ArgMap},
   From,
   #?MODULE{record_streams = Streams} = State) ->
     Stream = #{name => Name, fields => Fields},
@@ -90,10 +91,12 @@ handle_call(_Request, _From, State) ->
     {reply, ok, State}.
 
 handle_cast(
-  {display_help, Progname, CmdPath, ArgparseDef},
-  State) ->
+  {display_help, CmdPath, ArgparseDef},
+  #?MODULE{progname = Progname} = State) ->
     Options = #{progname => Progname,
-                command => CmdPath},
+                %% Work around bug in argparse;
+                %% See https://github.com/erlang/otp/pull/9160
+                command => tl(CmdPath)},
     Help = argparse:help(ArgparseDef, Options),
     io:format("~s~n", [Help]),
     {noreply, State};
