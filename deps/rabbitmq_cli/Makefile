@@ -48,6 +48,9 @@ export MAKE
 ESCRIPT_NAME = Elixir.RabbitMQCtl
 ESCRIPT_FILE = escript/rabbitmqctl
 
+escript::
+	$(verbose) mkdir -p escript/
+
 include ../../rabbitmq-components.mk
 include ../../erlang.mk
 
