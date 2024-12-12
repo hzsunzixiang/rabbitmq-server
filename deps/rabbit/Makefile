@@ -141,6 +141,7 @@ dep_horus = hex 0.3.1
 
 PLT_APPS += mnesia runtime_tools
 
+dep_meck = git https://github.com/eproxus/meck master
 dep_syslog = git https://github.com/schlagert/syslog 4.0.0
 
 define usage_xml_to_erl
