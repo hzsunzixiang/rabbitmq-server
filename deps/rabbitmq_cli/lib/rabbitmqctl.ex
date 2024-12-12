@@ -36,6 +36,7 @@ defmodule RabbitMQCtl do
   def main(unparsed_command) do
     # silence Erlang/OTP's standard library warnings, it's acceptable for CLI tools,
     # see rabbitmq/rabbitmq-server#8912
+    {:ok, _} = :application.ensure_all_started(:rabbitmqctl)
     _ = :logger.set_primary_config(:level, :error)
 
     exec_command(unparsed_command, &process_output/3)
@@ -409,7 +410,7 @@ defmodule RabbitMQCtl do
   @spec exit_program(integer()) :: no_return()
   defp exit_program(code) do
     _ = :net_kernel.stop()
-    exit({:shutdown, code})
+    :erlang.halt(code)
   end
 
   defp format_error({:error, {:node_name, :hostname_not_allowed}}, _, _) do
