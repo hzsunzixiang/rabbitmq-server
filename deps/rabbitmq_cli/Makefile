@@ -157,7 +157,7 @@ dialyzer:: escript
 
 .PHONY: install
 
-install: escript
+install: $(ESCRIPT_FILE)
 ifdef PREFIX
 	$(gen_verbose) mkdir -p "$(DESTDIR)$(PREFIX)"
 	$(verbose) $(foreach script,$(ACTUAL_ESCRIPTS), \
