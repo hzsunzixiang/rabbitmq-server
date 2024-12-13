@@ -17,7 +17,7 @@
 ERLANG_MK_FILENAME := $(realpath $(lastword $(MAKEFILE_LIST)))
 export ERLANG_MK_FILENAME
 
-ERLANG_MK_VERSION = 2022.05.31-145-g12f1987-dirty
+ERLANG_MK_VERSION = 2022.05.31-150-g91e552d-dirty
 ERLANG_MK_WITHOUT = 
 
 # Make 3.81 and 3.82 are deprecated.
@@ -537,7 +537,7 @@ dep_name = $(call query_name,$(1))
 LOCAL_DEPS_DIRS = $(foreach a,$(LOCAL_DEPS),$(if $(wildcard $(APPS_DIR)/$a),$(APPS_DIR)/$a))
 # Elixir is handled specially as it must be built before all other deps
 # when Mix autopatching is necessary.
-ALL_DEPS_DIRS = $(addprefix $(DEPS_DIR)/,$(foreach dep,$(filter-out $(if $(filter-out elixir,$(BUILD_DEPS) $(DEPS)),elixir) $(IGNORE_DEPS),$(BUILD_DEPS) $(DEPS)),$(call query_name,$(dep))))
+ALL_DEPS_DIRS = $(addprefix $(DEPS_DIR)/,$(foreach dep,$(filter-out $(IGNORE_DEPS),$(BUILD_DEPS) $(DEPS)),$(call query_name,$(dep))))
 
 # When we are calling an app directly we don't want to include it here
 # otherwise it'll be treated both as an apps and a top-level project.
@@ -629,9 +629,11 @@ endif
 ifneq ($(SKIP_DEPS),)
 deps::
 else
-deps:: $(ALL_DEPS_DIRS) apps clean-tmp-deps.log | $(ERLANG_MK_TMP)
-ifneq ($(ALL_DEPS_DIRS),)
-	$(verbose) set -e; for dep in $(ALL_DEPS_DIRS); do \
+ALL_DEPS_DIRS_TO_BUILD = $(if $(filter-out $(DEPS_DIR)/elixir,$(ALL_DEPS_DIRS)),$(filter-out $(DEPS_DIR)/elixir,$(ALL_DEPS_DIRS)),$(ALL_DEPS_DIRS))
+
+deps:: $(ALL_DEPS_DIRS_TO_BUILD) apps clean-tmp-deps.log | $(ERLANG_MK_TMP)
+ifneq ($(ALL_DEPS_DIRS_TO_BUILD),)
+	$(verbose) set -e; for dep in $(ALL_DEPS_DIRS_TO_BUILD); do \
 		if grep -qs ^$$dep$$ $(ERLANG_MK_TMP)/deps.log; then \
 			:; \
 		else \
@@ -1527,6 +1529,10 @@ ALL_SRC_FILES := $(sort $(call core_find,src/,*))
 ERL_FILES := $(filter %.erl,$(ALL_SRC_FILES))
 CORE_FILES := $(filter %.core,$(ALL_SRC_FILES))
 
+# @todo Must be defined first.
+ALL_LIB_FILES := $(sort $(call core_find,lib/,*))
+EX_FILES := $(filter-out lib/mix/%,$(filter %.ex,$(ALL_SRC_FILES) $(ALL_LIB_FILES)))
+
 # ASN.1 files.
 
 ifneq ($(wildcard asn1/),)
@@ -1707,11 +1713,11 @@ $(PROJECT).d:: $(ERL_FILES) $(EX_FILES) $(call core_find,include/,*.hrl) $(MAKEF
 endif
 
 ifeq ($(IS_APP)$(IS_DEP),)
-ifneq ($(words $(ERL_FILES) $(EX_FILES) $(CORE_FILES) $(ASN1_FILES) $(MIB_FILES) $(XRL_FILES) $(YRL_FILES)),0)
+ifneq ($(words $(ERL_FILES) $(EX_FILES) $(CORE_FILES) $(ASN1_FILES) $(MIB_FILES) $(XRL_FILES) $(YRL_FILES) $(EX_FILES)),0)
 # Rebuild everything when the Makefile changes.
 $(ERLANG_MK_TMP)/last-makefile-change: $(MAKEFILE_LIST) | $(ERLANG_MK_TMP)
 	$(verbose) if test -f $@; then \
-		touch $(ERL_FILES) $(EX_FILES) $(CORE_FILES) $(ASN1_FILES) $(MIB_FILES) $(XRL_FILES) $(YRL_FILES); \
+		touch $(ERL_FILES) $(EX_FILES) $(CORE_FILES) $(ASN1_FILES) $(MIB_FILES) $(XRL_FILES) $(YRL_FILES) $(EX_FILES); \
 		touch -c $(PROJECT).d; \
 	fi
 	$(verbose) touch $@
@@ -1744,9 +1750,9 @@ define validate_app_file
 endef
 
 ebin/$(PROJECT).app:: $(ERL_FILES) $(CORE_FILES) $(wildcard src/$(PROJECT).app.src) $(EX_FILES)
-	$(eval FILES_TO_COMPILE := $(filter-out src/$(PROJECT).app.src,$?))
+	$(eval FILES_TO_COMPILE := $(filter-out $(EX_FILES) src/$(PROJECT).app.src,$?))
 	$(if $(strip $(FILES_TO_COMPILE)),$(call compile_erl,$(FILES_TO_COMPILE)))
-	$(if $(strip $(EX_FILES)),$(elixirc_verbose) $(eval MODULES := $(shell $(call erlang,$(call compile_ex.erl,$(EX_FILES))))))
+	$(if $(filter $?,$(EX_FILES)),$(elixirc_verbose) $(eval MODULES := $(shell $(call erlang,$(call compile_ex.erl,$(EX_FILES))))))
 # Older git versions do not have the --first-parent flag. Do without in that case.
 	$(eval GITDESCRIBE := $(shell git describe --dirty --abbrev=7 --tags --always --first-parent 2>/dev/null \
 		|| git describe --dirty --abbrev=7 --tags --always 2>/dev/null || true))
@@ -1788,21 +1794,21 @@ endif
 # Copyright (c) 2024, Loïc Hoguin <essen@ninenines.eu>
 # This file is part of erlang.mk and subject to the terms of the ISC License.
 
-ALL_LIB_FILES := $(sort $(call core_find,lib/,*))
-EX_FILES := $(filter-out lib/mix/%,$(filter %.ex,$(ALL_SRC_FILES) $(ALL_LIB_FILES)))
-
 ELIXIR ?= $(if $(filter elixir,$(BUILD_DEPS) $(DEPS)),dep,system)
 export ELIXIR
 
 ifeq ($(ELIXIR),system)
 # We expect 'elixir' to be on the path.
-ELIXIR_LIBS := $(dir $(shell elixir -e 'IO.puts(:code.lib_dir(:elixir))'))
+# @todo Only if there are EX_FILES
+ELIXIR_LIBS ?= $(dir $(shell elixir -e 'IO.puts(:code.lib_dir(:elixir))'))
+ELIXIR_LIBS := $(ELIXIR_LIBS)
+export ELIXIR_LIBS
 ERL_LIBS := $(ERL_LIBS):$(ELIXIR_LIBS)
 else
 ERL_LIBS := $(ERL_LIBS):$(DEPS_DIR)/elixir/lib/
 endif
 
-elixirc_verbose_0 = @echo " ELIXIRC  " $(EX_FILES)
+elixirc_verbose_0 = @echo " EXC    $(words $(EX_FILES)) files"
 elixirc_verbose_2 = set -x;
 elixirc_verbose = $(elixirc_verbose_$(V))
 
@@ -3402,17 +3408,45 @@ help::
 
 # Plugin-specific targets.
 
-escript-zip:: FULL=1
-escript-zip:: deps app
+ALL_ESCRIPT_DEPS_DIRS = $(LOCAL_DEPS_DIRS) $(addprefix $(DEPS_DIR)/,$(foreach dep,$(filter-out $(IGNORE_DEPS),$(DEPS)),$(call query_name,$(dep))))
+
+ESCRIPT_RUNTIME_DEPS_FILE ?= $(ERLANG_MK_TMP)/escript-deps.log
+
+escript-list-runtime-deps:
+ifeq ($(IS_DEP),)
+	$(verbose) rm -f $(ESCRIPT_RUNTIME_DEPS_FILE)
+endif
+	$(verbose) touch $(ESCRIPT_RUNTIME_DEPS_FILE)
+	$(verbose) set -e; for dep in $(ALL_ESCRIPT_DEPS_DIRS) ; do \
+		if ! grep -qs ^$$dep$$ $(ESCRIPT_RUNTIME_DEPS_FILE); then \
+			echo $$dep >> $(ESCRIPT_RUNTIME_DEPS_FILE); \
+			if grep -qs -E "^[[:blank:]]*include[[:blank:]]+(erlang\.mk|.*/erlang\.mk|.*ERLANG_MK_FILENAME.*)$$" \
+			 $$dep/GNUmakefile $$dep/makefile $$dep/Makefile; then \
+				$(MAKE) -C $$dep escript-list-runtime-deps \
+				 IS_DEP=1 \
+				 ESCRIPT_RUNTIME_DEPS_FILE=$(ESCRIPT_RUNTIME_DEPS_FILE); \
+			fi \
+		fi \
+	done
+ifeq ($(IS_DEP),)
+	$(verbose) sort < $(ESCRIPT_RUNTIME_DEPS_FILE) | uniq > $(ESCRIPT_RUNTIME_DEPS_FILE).sorted
+	$(verbose) mv $(ESCRIPT_RUNTIME_DEPS_FILE).sorted $(ESCRIPT_RUNTIME_DEPS_FILE)
+endif
+
+escript-prepare: deps app
+	$(MAKE) escript-list-runtime-deps
+
+escript-zip:: escript-prepare
 	$(verbose) mkdir -p $(dir $(abspath $(ESCRIPT_ZIP_FILE)))
 	$(verbose) rm -f $(abspath $(ESCRIPT_ZIP_FILE))
-	$(gen_verbose) cd .. && $(ESCRIPT_ZIP) $(abspath $(ESCRIPT_ZIP_FILE)) rabbitmq_cli/ebin/*
+	$(gen_verbose) cd .. && $(ESCRIPT_ZIP) $(abspath $(ESCRIPT_ZIP_FILE)) $(notdir $(CURDIR))/ebin/*
 ifneq ($(DEPS),)
 	$(verbose) cd $(DEPS_DIR) && $(ESCRIPT_ZIP) $(abspath $(ESCRIPT_ZIP_FILE)) \
 		$(subst $(DEPS_DIR)/,,$(addsuffix /*,$(wildcard \
-			$(addsuffix /ebin,$(shell cat $(ERLANG_MK_TMP)/deps.log)))))
+		$(addsuffix /ebin,$(shell cat $(ESCRIPT_RUNTIME_DEPS_FILE))))))
 endif
 
+# @todo Only generate the zip file if there were changes.
 escript:: escript-zip
 	$(gen_verbose) printf "%s\n" \
 		"#!$(ESCRIPT_SHEBANG)" \
@@ -4798,9 +4832,7 @@ endif
 ifeq ($(IS_APP)$(IS_DEP),)
 	$(verbose) sort < $(ERLANG_MK_RECURSIVE_TMP_LIST) | \
 		uniq > $(ERLANG_MK_RECURSIVE_TMP_LIST).sorted
-	$(verbose) cmp -s $(ERLANG_MK_RECURSIVE_TMP_LIST).sorted $@ \
-		|| mv $(ERLANG_MK_RECURSIVE_TMP_LIST).sorted $@
-	$(verbose) rm -f $(ERLANG_MK_RECURSIVE_TMP_LIST).sorted
+	$(verbose) mv $(ERLANG_MK_RECURSIVE_TMP_LIST).sorted $@
 	$(verbose) rm $(ERLANG_MK_RECURSIVE_TMP_LIST)
 endif
 endif # ifneq ($(SKIP_DEPS),)

@@ -43,16 +43,19 @@ endif
 
 export MAKE
 
-.DEFAULT_GOAL = escript
-
 ESCRIPT_NAME = Elixir.RabbitMQCtl
 ESCRIPT_FILE = escript/rabbitmqctl
+
+.DEFAULT_GOAL = $(ESCRIPT_FILE)
 
 escript::
 	$(verbose) mkdir -p escript/
 
 include ../../rabbitmq-components.mk
 include ../../erlang.mk
+
+$(ESCRIPT_FILE): $(EX_FILES)
+	$(verbose) $(MAKE) escript
 
 ESCRIPT_EMU_ARGS += -hidden
 
