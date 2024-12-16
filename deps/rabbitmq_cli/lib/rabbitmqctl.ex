@@ -25,7 +25,12 @@ defmodule RabbitMQCtl do
   @type command_result() :: {:error, ExitCodes.exit_code(), term()} | term()
 
   @spec main(list()) :: no_return()
-  def main(["--auto-complete" | []]) do
+  def main(cmd0) do
+    cmd = Enum.map(cmd0, fn val -> :erlang.list_to_binary(val) end)
+    main1(cmd)
+  end
+
+  def main1(["--auto-complete" | []]) do
     # silence Erlang/OTP's standard library warnings, it's acceptable for CLI tools,
     # see rabbitmq/rabbitmq-server#8912
     _ = :logger.set_primary_config(:level, :error)
@@ -33,7 +38,7 @@ defmodule RabbitMQCtl do
     handle_shutdown(:ok)
   end
 
-  def main(unparsed_command) do
+  def main1(unparsed_command) do
     # silence Erlang/OTP's standard library warnings, it's acceptable for CLI tools,
     # see rabbitmq/rabbitmq-server#8912
     {:ok, _} = :application.ensure_all_started(:rabbitmqctl)

@@ -17,7 +17,7 @@
 ERLANG_MK_FILENAME := $(realpath $(lastword $(MAKEFILE_LIST)))
 export ERLANG_MK_FILENAME
 
-ERLANG_MK_VERSION = 2022.05.31-150-g91e552d-dirty
+ERLANG_MK_VERSION = 2022.05.31-151-gef04797-dirty
 ERLANG_MK_WITHOUT = 
 
 # Make 3.81 and 3.82 are deprecated.
@@ -1504,7 +1504,7 @@ app:: $(if $(wildcard ebin/test),beam-cache-restore-app) deps
 	$(verbose) $(MAKE) --no-print-directory $(PROJECT).d
 	$(verbose) $(MAKE) --no-print-directory app-build
 
-PROJECT_MOD := $(if $(PROJECT_MOD),$(PROJECT_MOD),$(if $(wildcard src/$(PROJECT_MOD)_app.erl),$(PROJECT_MOD)_app))
+PROJECT_MOD := $(if $(PROJECT_MOD),$(PROJECT_MOD),$(if $(wildcard src/$(PROJECT)_app.erl),$(PROJECT)_app))
 
 define app_file
 {application, '$(PROJECT)', [
