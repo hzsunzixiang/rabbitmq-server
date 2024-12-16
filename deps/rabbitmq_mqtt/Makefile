@@ -144,6 +144,7 @@ tpl_parallel_ct_test_spec_set_$1 = $$(call tpl_parallel_ct_test_spec,$(PARALLEL_
 parallel-ct-set-$(1): test-build
 	$(verbose) mkdir -p $(CT_LOGS_DIR)
 	$(verbose) $$(call core_render,tpl_parallel_ct_test_spec_set_$(1),ct.set-$(1).spec)
+	$$(eval ERL := erl -noinput -boot no_dot_erlang)
 	$$(call erlang,$$(call ct_master.erl,ct.set-$(1).spec),-sname parallel_ct_$(PROJECT)@localhost -hidden -kernel net_ticktime 5)
 endef
 
