@@ -2,13 +2,13 @@ PROJECT = rabbitmqctl
 
 define PROJECT_ENV
 [{scopes, #{
-    <<"rabbitmq-plugins">> => plugins,
     rabbitmqctl => ctl,
-    <<"rabbitmq-diagnostics">> => diagnostics,
-    <<"rabbitmq-queues">> => queues,
-    <<"rabbitmq-streams">> => streams,
-    <<"rabbitmq-upgrade">> => upgrade,
-    <<"vmware-rabbitmq">> => vmware
+    'rabbitmq-diagnostics' => diagnostics,
+    'rabbitmq-plugins' => plugins,
+    'rabbitmq-queues' => queues,
+    'rabbitmq-streams' => streams,
+    'rabbitmq-upgrade' => upgrade,
+    'vmware-rabbitmq' => vmware
 }}]
 endef
 
