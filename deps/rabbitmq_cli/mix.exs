@@ -20,6 +20,7 @@ defmodule RabbitMQCtl.MixfileBase do
         path: "escript/rabbitmqctl"
       ],
       prune_code_paths: false,
+      elixirc_options: [ignore_module_conflict: true],
       deps: deps(Mix.env()),
       aliases: aliases(),
       xref: [
