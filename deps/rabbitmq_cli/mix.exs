@@ -163,6 +163,12 @@ defmodule RabbitMQCtl.MixfileBase do
         compile: if(is_bazel, do: fake_cmd, else: make_cmd)
       },
       {
+        :recon,
+        path: Path.join(deps_dir, "recon"),
+        compile: if(is_bazel, do: fake_cmd, else: make_cmd),
+        override: true
+      },
+      {
         :rabbit_common,
         path: Path.join(deps_dir, "rabbit_common"),
         compile: if(is_bazel, do: fake_cmd, else: make_cmd),
