@@ -27,7 +27,6 @@ defmodule RabbitMQCtl do
   @spec main(list()) :: no_return()
   def main(cmd0) do
     {:ok, _} = :application.ensure_all_started(:elixir)
-    IO.inspect cmd0
     cmd = Enum.map(cmd0, &List.to_string/1)
     System.argv(cmd)
     :application.set_env(:logger, :level, :warning, [{:persistent, true}])
