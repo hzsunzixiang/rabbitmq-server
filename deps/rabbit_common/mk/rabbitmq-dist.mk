@@ -223,43 +223,21 @@ endif
 install-cli: install-cli-scripts install-cli-escripts
 	@:
 
-install-cli-scripts:
+install-cli-scripts: | $(CLI_SCRIPTS_DIR)
 	$(gen_verbose) \
 	set -e; \
 	test -d "$(DEPS_DIR)/rabbit/scripts"; \
-	if command -v flock >/dev/null; then \
-		flock $(CLI_SCRIPTS_LOCK) \
-		sh -e -c 'mkdir -p "$(CLI_SCRIPTS_DIR)" && \
-			cp -a $(DEPS_DIR)/rabbit/scripts/* $(CLI_SCRIPTS_DIR)/'; \
-	elif command -v lockf >/dev/null; then \
-		lockf $(CLI_SCRIPTS_LOCK) \
-		sh -e -c 'mkdir -p "$(CLI_SCRIPTS_DIR)" && \
-			cp -a $(DEPS_DIR)/rabbit/scripts/* $(CLI_SCRIPTS_DIR)/'; \
-	else \
-		mkdir -p "$(CLI_SCRIPTS_DIR)" && \
-			cp -a $(DEPS_DIR)/rabbit/scripts/* $(CLI_SCRIPTS_DIR)/; \
-	fi
+	$(call maybe_flock,$(CLI_SCRIPTS_LOCK), \
+		cp -a $(DEPS_DIR)/rabbit/scripts/* $(CLI_SCRIPTS_DIR)/)
 
-install-cli-escripts:
-	$(gen_verbose) \
-	if command -v flock >/dev/null; then \
-		flock $(CLI_ESCRIPTS_LOCK) \
-		sh -c 'mkdir -p "$(CLI_ESCRIPTS_DIR)" && \
+install-cli-escripts: | $(CLI_ESCRIPTS_DIR)
+	$(gen_verbose) $(call maybe_flock,$(CLI_ESCRIPTS_LOCK), \
 		$(MAKE) -C "$(DEPS_DIR)/rabbitmq_cli" install \
 			PREFIX="$(abspath $(CLI_ESCRIPTS_DIR))" \
-			DESTDIR='; \
-	elif command -v lockf >/dev/null; then \
-		lockf $(CLI_ESCRIPTS_LOCK) \
-		sh -c 'mkdir -p "$(CLI_ESCRIPTS_DIR)" && \
-		$(MAKE) -C "$(DEPS_DIR)/rabbitmq_cli" install \
-			PREFIX="$(abspath $(CLI_ESCRIPTS_DIR))" \
-			DESTDIR='; \
-	else \
-		mkdir -p "$(CLI_ESCRIPTS_DIR)" && \
-		$(MAKE) -C "$(DEPS_DIR)/rabbitmq_cli" install \
-			PREFIX="$(abspath $(CLI_ESCRIPTS_DIR))" \
-			DESTDIR= ; \
-	fi
+			DESTDIR= IS_DEP=1)
+
+$(CLI_SCRIPTS_DIR) $(CLI_ESCRIPTS_DIR):
+	$(verbose) mkdir -p $@
 
 clean-dist::
 	$(gen_verbose) rm -rf \
