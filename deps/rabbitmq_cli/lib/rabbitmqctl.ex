@@ -26,10 +26,17 @@ defmodule RabbitMQCtl do
 
   @spec main(list()) :: no_return()
   def main(cmd0) do
-    cmd = Enum.map(cmd0, fn val -> :erlang.list_to_binary(val) end)
-    main1(cmd)
+    {:ok, _} = :application.ensure_all_started(:elixir)
+    IO.inspect cmd0
+    cmd = Enum.map(cmd0, &List.to_string/1)
+    System.argv(cmd)
+    :application.set_env(:logger, :level, :warning, [{:persistent, true}])
+    :application.set_env(:logger, :console, [{:device, :standard_error}], [{:persistent, true}])
+    {:ok, _} = :application.ensure_all_started(:rabbitmqctl)
+    Kernel.CLI.run(fn _ -> RabbitMQCtl.main1(cmd) end)
   end
 
+  @spec main1(list()) :: no_return()
   def main1(["--auto-complete" | []]) do
     # silence Erlang/OTP's standard library warnings, it's acceptable for CLI tools,
     # see rabbitmq/rabbitmq-server#8912
@@ -41,7 +48,6 @@ defmodule RabbitMQCtl do
   def main1(unparsed_command) do
     # silence Erlang/OTP's standard library warnings, it's acceptable for CLI tools,
     # see rabbitmq/rabbitmq-server#8912
-    {:ok, _} = :application.ensure_all_started(:rabbitmqctl)
     _ = :logger.set_primary_config(:level, :error)
 
     exec_command(unparsed_command, &process_output/3)
@@ -415,7 +421,7 @@ defmodule RabbitMQCtl do
   @spec exit_program(integer()) :: no_return()
   defp exit_program(code) do
     _ = :net_kernel.stop()
-    :erlang.halt(code)
+    exit({:shutdown, code})
   end
 
   defp format_error({:error, {:node_name, :hostname_not_allowed}}, _, _) do
