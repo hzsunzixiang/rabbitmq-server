@@ -184,6 +184,7 @@
          messages_uncommitted,
          acks_uncommitted,
          pending_raft_commands,
+         cached_segments,
          prefetch_count,
          state,
          garbage_collection]).
@@ -2287,6 +2288,8 @@ i(acks_uncommitted,        #ch{tx = {_Msgs, Acks}})       -> ack_len(Acks);
 i(acks_uncommitted,        #ch{})                         -> 0;
 i(pending_raft_commands,   #ch{queue_states = QS}) ->
     pending_raft_commands(QS);
+i(cached_segments,   #ch{queue_states = QS}) ->
+    cached_segments(QS);
 i(state,                   #ch{cfg = #conf{state = running}}) -> credit_flow:state();
 i(state,                   #ch{cfg = #conf{state = State}}) -> State;
 i(prefetch_count,          #ch{cfg = #conf{consumer_prefetch = C}})    -> C;
@@ -2308,6 +2311,17 @@ pending_raft_commands(QStates) ->
     Fun = fun(_, V, Acc) ->
                   case rabbit_queue_type:state_info(V) of
                       #{pending_raft_commands := P} ->
+                          Acc + P;
+                      _ ->
+                          Acc
+                  end
+          end,
+    rabbit_queue_type:fold_state(Fun, 0, QStates).
+
+cached_segments(QStates) ->
+    Fun = fun(_, V, Acc) ->
+                  case rabbit_queue_type:state_info(V) of
+                      #{cached_segments := P} ->
                           Acc + P;
                       _ ->
                           Acc
